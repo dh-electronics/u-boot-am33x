@@ -1,0 +1,7 @@
+AM335X DHCOM BOARD
+M:	Ludwig Zenz <lzenz@dh-electronics.de>
+S:	Maintained
+F:	board/dhelectronics/am335x_dhcom/
+F:	include/configs/am335x_dhcom.h
+F:	configs/am335x_dhcom_defconfig
+
