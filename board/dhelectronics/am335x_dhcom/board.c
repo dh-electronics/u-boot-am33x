@@ -40,48 +40,6 @@ DECLARE_GLOBAL_DATA_PTR;
 
 static struct ctrl_dev *cdev = (struct ctrl_dev *)CTRL_DEVICE_BASE;
 
-/*
- * Read header information from EEPROM into global structure.
- */
-static int read_eeprom(struct am335x_baseboard_id *header)
-{
-	/* Check if baseboard eeprom is available */
-	if (i2c_probe(CONFIG_SYS_I2C_EEPROM_ADDR)) {
-		puts("Could not probe the EEPROM; something fundamentally "
-			"wrong on the I2C bus.\n");
-		return -ENODEV;
-	}
-
-	/* read the eeprom using i2c */
-	if (i2c_read(CONFIG_SYS_I2C_EEPROM_ADDR, 0, 2, (uchar *)header,
-		     sizeof(struct am335x_baseboard_id))) {
-		puts("Could not read the EEPROM; something fundamentally"
-			" wrong on the I2C bus.\n");
-		return -EIO;
-	}
-
-	if (header->magic != 0xEE3355AA) {
-		/*
-		 * read the eeprom using i2c again,
-		 * but use only a 1 byte address
-		 */
-		if (i2c_read(CONFIG_SYS_I2C_EEPROM_ADDR, 0, 1, (uchar *)header,
-			     sizeof(struct am335x_baseboard_id))) {
-			puts("Could not read the EEPROM; something "
-				"fundamentally wrong on the I2C bus.\n");
-			return -EIO;
-		}
-
-		if (header->magic != 0xEE3355AA) {
-			printf("Incorrect magic number (0x%x) in EEPROM\n",
-					header->magic);
-			return -EINVAL;
-		}
-	}
-
-	return 0;
-}
-
 #ifndef CONFIG_SKIP_LOWLEVEL_INIT
 static const struct ddr_data ddr3_dhcom_2gb_data = {
 	.datardsratio0 = NT5CB128M15FP_RD_DQS,
@@ -138,8 +96,10 @@ const struct dpll_params dpll_ddr_dhcom = {
 
 void am33xx_spl_board_init(void)
 {
+#ifdef DO_NOT_EXECUTE
 	struct am335x_baseboard_id header;
 	int mpu_vdd;
+#endif
 
 	/* Get the frequency */
 	dpll_mpu_opp100.m = am335x_get_efuse_mpu_max_freq(cdev);
@@ -337,23 +297,6 @@ int board_init(void)
 #ifdef CONFIG_BOARD_LATE_INIT
 int board_late_init(void)
 {
-#ifdef CONFIG_ENV_VARS_UBOOT_RUNTIME_CONFIG
-	char safe_string[HDR_NAME_LEN + 1];
-	struct am335x_baseboard_id header;
-
-	if (read_eeprom(&header) < 0)
-		puts("Could not get board ID.\n");
-
-	/* Now set variables based on the header. */
-	strncpy(safe_string, (char *)header.name, sizeof(header.name));
-	safe_string[sizeof(header.name)] = 0;
-	setenv("board_name", safe_string);
-
-	strncpy(safe_string, (char *)header.version, sizeof(header.version));
-	safe_string[sizeof(header.version)] = 0;
-	setenv("board_rev", safe_string);
-#endif
-
 	return 0;
 }
 #endif
@@ -458,19 +401,10 @@ int board_eth_init(bd_t *bis)
 			eth_setenv_enetaddr("eth1addr", mac_addr);
 	}
 
-	if (read_eeprom(&header) < 0)
-		puts("Could not get board ID.\n");
+	writel(MII_MODE_ENABLE, &cdev->miisel);
+	cpsw_slaves[0].phy_if = cpsw_slaves[1].phy_if =
+			PHY_INTERFACE_MODE_MII;
 
-	if (board_is_bone(&header) || board_is_bone_lt(&header) ||
-	    board_is_idk(&header)) {
-		writel(MII_MODE_ENABLE, &cdev->miisel);
-		cpsw_slaves[0].phy_if = cpsw_slaves[1].phy_if =
-				PHY_INTERFACE_MODE_MII;
-	} else {
-		writel((RGMII_MODE_ENABLE | RGMII_INT_DELAY), &cdev->miisel);
-		cpsw_slaves[0].phy_if = cpsw_slaves[1].phy_if =
-				PHY_INTERFACE_MODE_RGMII;
-	}
 
 	rv = cpsw_register(&cpsw_data);
 	if (rv < 0)
