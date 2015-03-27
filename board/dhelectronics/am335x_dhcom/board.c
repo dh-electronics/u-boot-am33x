@@ -41,114 +41,36 @@ DECLARE_GLOBAL_DATA_PTR;
 static struct ctrl_dev *cdev = (struct ctrl_dev *)CTRL_DEVICE_BASE;
 
 #ifndef CONFIG_SKIP_LOWLEVEL_INIT
-static const struct ddr_data ddr2_data = {
-	.datardsratio0 = MT47H128M16RT25E_RD_DQS,
-	.datafwsratio0 = MT47H128M16RT25E_PHY_FIFO_WE,
-	.datawrsratio0 = MT47H128M16RT25E_PHY_WR_DATA,
+static const struct ddr_data ddr3_dhcom_2gb_data = {
+	.datardsratio0 = NT5CB128M15FP_RD_DQS,
+	.datawdsratio0 = NT5CB128M15FP_WR_DQS,
+	.datafwsratio0 = NT5CB128M15FP_PHY_FIFO_WE,
+	.datawrsratio0 = NT5CB128M15FP_PHY_WR_DATA,
 };
 
-static const struct cmd_control ddr2_cmd_ctrl_data = {
-	.cmd0csratio = MT47H128M16RT25E_RATIO,
+static const struct cmd_control ddr3_dhcom_2gb_cmd_ctrl_data = {
+	.cmd0csratio = NT5CB128M15FP_RATIO,
+	.cmd0iclkout = NT5CB128M15FP_INVERT_CLKOUT,
 
-	.cmd1csratio = MT47H128M16RT25E_RATIO,
+	.cmd1csratio = NT5CB128M15FP_RATIO,
+	.cmd1iclkout = NT5CB128M15FP_INVERT_CLKOUT,
 
-	.cmd2csratio = MT47H128M16RT25E_RATIO,
+	.cmd2csratio = NT5CB128M15FP_RATIO,
+	.cmd2iclkout = NT5CB128M15FP_INVERT_CLKOUT,
 };
 
-static const struct emif_regs ddr2_emif_reg_data = {
-	.sdram_config = MT47H128M16RT25E_EMIF_SDCFG,
-	.ref_ctrl = MT47H128M16RT25E_EMIF_SDREF,
-	.sdram_tim1 = MT47H128M16RT25E_EMIF_TIM1,
-	.sdram_tim2 = MT47H128M16RT25E_EMIF_TIM2,
-	.sdram_tim3 = MT47H128M16RT25E_EMIF_TIM3,
-	.emif_ddr_phy_ctlr_1 = MT47H128M16RT25E_EMIF_READ_LATENCY,
+
+/* Nanya 2GB 128Mx16 */
+static struct emif_regs ddr3_emif_reg_data_dhcom_2gb = {
+	.sdram_config = NT5CB128M15FP_EMIF_SDCFG,
+	.ref_ctrl = NT5CB128M15FP_EMIF_SDREF,
+	.sdram_tim1 = NT5CB128M15FP_EMIF_TIM1,
+	.sdram_tim2 = NT5CB128M15FP_EMIF_TIM2,
+	.sdram_tim3 = NT5CB128M15FP_EMIF_TIM3,
+	.zq_config = NT5CB128M15FP_ZQ_CFG,
+	.emif_ddr_phy_ctlr_1 = NT5CB128M15FP_EMIF_READ_LATENCY,
 };
 
-static const struct ddr_data ddr3_data = {
-	.datardsratio0 = MT41J128MJT125_RD_DQS,
-	.datawdsratio0 = MT41J128MJT125_WR_DQS,
-	.datafwsratio0 = MT41J128MJT125_PHY_FIFO_WE,
-	.datawrsratio0 = MT41J128MJT125_PHY_WR_DATA,
-};
-
-static const struct ddr_data ddr3_beagleblack_data = {
-	.datardsratio0 = MT41K256M16HA125E_RD_DQS,
-	.datawdsratio0 = MT41K256M16HA125E_WR_DQS,
-	.datafwsratio0 = MT41K256M16HA125E_PHY_FIFO_WE,
-	.datawrsratio0 = MT41K256M16HA125E_PHY_WR_DATA,
-};
-
-static const struct ddr_data ddr3_evm_data = {
-	.datardsratio0 = MT41J512M8RH125_RD_DQS,
-	.datawdsratio0 = MT41J512M8RH125_WR_DQS,
-	.datafwsratio0 = MT41J512M8RH125_PHY_FIFO_WE,
-	.datawrsratio0 = MT41J512M8RH125_PHY_WR_DATA,
-};
-
-static const struct cmd_control ddr3_cmd_ctrl_data = {
-	.cmd0csratio = MT41J128MJT125_RATIO,
-	.cmd0iclkout = MT41J128MJT125_INVERT_CLKOUT,
-
-	.cmd1csratio = MT41J128MJT125_RATIO,
-	.cmd1iclkout = MT41J128MJT125_INVERT_CLKOUT,
-
-	.cmd2csratio = MT41J128MJT125_RATIO,
-	.cmd2iclkout = MT41J128MJT125_INVERT_CLKOUT,
-};
-
-static const struct cmd_control ddr3_beagleblack_cmd_ctrl_data = {
-	.cmd0csratio = MT41K256M16HA125E_RATIO,
-	.cmd0iclkout = MT41K256M16HA125E_INVERT_CLKOUT,
-
-	.cmd1csratio = MT41K256M16HA125E_RATIO,
-	.cmd1iclkout = MT41K256M16HA125E_INVERT_CLKOUT,
-
-	.cmd2csratio = MT41K256M16HA125E_RATIO,
-	.cmd2iclkout = MT41K256M16HA125E_INVERT_CLKOUT,
-};
-
-static const struct cmd_control ddr3_evm_cmd_ctrl_data = {
-	.cmd0csratio = MT41J512M8RH125_RATIO,
-	.cmd0iclkout = MT41J512M8RH125_INVERT_CLKOUT,
-
-	.cmd1csratio = MT41J512M8RH125_RATIO,
-	.cmd1iclkout = MT41J512M8RH125_INVERT_CLKOUT,
-
-	.cmd2csratio = MT41J512M8RH125_RATIO,
-	.cmd2iclkout = MT41J512M8RH125_INVERT_CLKOUT,
-};
-
-static struct emif_regs ddr3_emif_reg_data = {
-	.sdram_config = MT41J128MJT125_EMIF_SDCFG,
-	.ref_ctrl = MT41J128MJT125_EMIF_SDREF,
-	.sdram_tim1 = MT41J128MJT125_EMIF_TIM1,
-	.sdram_tim2 = MT41J128MJT125_EMIF_TIM2,
-	.sdram_tim3 = MT41J128MJT125_EMIF_TIM3,
-	.zq_config = MT41J128MJT125_ZQ_CFG,
-	.emif_ddr_phy_ctlr_1 = MT41J128MJT125_EMIF_READ_LATENCY |
-				PHY_EN_DYN_PWRDN,
-};
-
-static struct emif_regs ddr3_beagleblack_emif_reg_data = {
-	.sdram_config = MT41K256M16HA125E_EMIF_SDCFG,
-	.ref_ctrl = MT41K256M16HA125E_EMIF_SDREF,
-	.sdram_tim1 = MT41K256M16HA125E_EMIF_TIM1,
-	.sdram_tim2 = MT41K256M16HA125E_EMIF_TIM2,
-	.sdram_tim3 = MT41K256M16HA125E_EMIF_TIM3,
-	.zq_config = MT41K256M16HA125E_ZQ_CFG,
-	.emif_ddr_phy_ctlr_1 = MT41K256M16HA125E_EMIF_READ_LATENCY,
-};
-
-static struct emif_regs ddr3_evm_emif_reg_data = {
-	.sdram_config = MT41J512M8RH125_EMIF_SDCFG,
-	.ref_ctrl = MT41J512M8RH125_EMIF_SDREF,
-	.sdram_tim1 = MT41J512M8RH125_EMIF_TIM1,
-	.sdram_tim2 = MT41J512M8RH125_EMIF_TIM2,
-	.sdram_tim3 = MT41J512M8RH125_EMIF_TIM3,
-	.zq_config = MT41J512M8RH125_ZQ_CFG,
-	.emif_ddr_phy_ctlr_1 = MT41J512M8RH125_EMIF_READ_LATENCY |
-				PHY_EN_DYN_PWRDN,
-};
 
 #ifdef CONFIG_SPL_OS_BOOT
 int spl_start_uboot(void)
@@ -169,11 +91,7 @@ int spl_start_uboot(void)
 #endif
 
 #define OSC	(V_OSCK/1000000)
-const struct dpll_params dpll_ddr = {
-		266, OSC-1, 1, -1, -1, -1, -1};
-const struct dpll_params dpll_ddr_evm_sk = {
-		303, OSC-1, 1, -1, -1, -1, -1};
-const struct dpll_params dpll_ddr_bone_black = {
+const struct dpll_params dpll_ddr_dhcom = {
 		400, OSC-1, 1, -1, -1, -1, -1};
 
 void am33xx_spl_board_init(void)
@@ -183,12 +101,10 @@ void am33xx_spl_board_init(void)
 	int mpu_vdd;
 #endif
 
-	if (read_eeprom(&header) < 0)
-		puts("Could not get board ID.\n");
-
 	/* Get the frequency */
 	dpll_mpu_opp100.m = am335x_get_efuse_mpu_max_freq(cdev);
 
+#ifdef DO_NOT_EXECUTE
 	if (board_is_bone(&header) || board_is_bone_lt(&header)) {
 		/* BeagleBone PMIC Code */
 		int usb_cur_lim;
@@ -317,6 +233,9 @@ void am33xx_spl_board_init(void)
 		/* Set CORE Frequencies to OPP100 */
 		do_setup_dpll(&dpll_core_regs, &dpll_core_opp100);
 	}
+#endif
+	/* Set CORE Frequencies to OPP100 */
+	do_setup_dpll(&dpll_core_regs, &dpll_core_opp100);
 
 	/* Set MPU Frequency to what we detected now that voltages are set */
 	do_setup_dpll(&dpll_mpu_regs, &dpll_mpu_opp100);
@@ -324,22 +243,9 @@ void am33xx_spl_board_init(void)
 
 const struct dpll_params *get_dpll_ddr_params(void)
 {
-	struct am335x_baseboard_id header;
-
-	enable_i2c0_pin_mux();
-	i2c_init(CONFIG_SYS_OMAP24_I2C_SPEED, CONFIG_SYS_OMAP24_I2C_SLAVE);
-	if (read_eeprom(&header) < 0)
-		puts("Could not get board ID.\n");
-
-	if (board_is_evm_sk(&header))
-		return &dpll_ddr_evm_sk;
-	else if (board_is_bone_lt(&header))
-		return &dpll_ddr_bone_black;
-	else if (board_is_evm_15_or_later(&header))
-		return &dpll_ddr_evm_sk;
-	else
-		return &dpll_ddr;
+	return &dpll_ddr_dhcom;
 }
+
 
 void set_uart_mux_conf(void)
 {
@@ -347,14 +253,6 @@ void set_uart_mux_conf(void)
 	enable_uart0_pin_mux();
 #elif CONFIG_CONS_INDEX == 2
 	enable_uart1_pin_mux();
-#elif CONFIG_CONS_INDEX == 3
-	enable_uart2_pin_mux();
-#elif CONFIG_CONS_INDEX == 4
-	enable_uart3_pin_mux();
-#elif CONFIG_CONS_INDEX == 5
-	enable_uart4_pin_mux();
-#elif CONFIG_CONS_INDEX == 6
-	enable_uart5_pin_mux();
 #endif
 }
 
@@ -363,68 +261,20 @@ void set_mux_conf_regs(void)
 	enable_board_pin_mux();
 }
 
-const struct ctrl_ioregs ioregs_evmsk = {
-	.cm0ioctl		= MT41J128MJT125_IOCTRL_VALUE,
-	.cm1ioctl		= MT41J128MJT125_IOCTRL_VALUE,
-	.cm2ioctl		= MT41J128MJT125_IOCTRL_VALUE,
-	.dt0ioctl		= MT41J128MJT125_IOCTRL_VALUE,
-	.dt1ioctl		= MT41J128MJT125_IOCTRL_VALUE,
-};
-
-const struct ctrl_ioregs ioregs_bonelt = {
-	.cm0ioctl		= MT41K256M16HA125E_IOCTRL_VALUE,
-	.cm1ioctl		= MT41K256M16HA125E_IOCTRL_VALUE,
-	.cm2ioctl		= MT41K256M16HA125E_IOCTRL_VALUE,
-	.dt0ioctl		= MT41K256M16HA125E_IOCTRL_VALUE,
-	.dt1ioctl		= MT41K256M16HA125E_IOCTRL_VALUE,
-};
-
-const struct ctrl_ioregs ioregs_evm15 = {
-	.cm0ioctl		= MT41J512M8RH125_IOCTRL_VALUE,
-	.cm1ioctl		= MT41J512M8RH125_IOCTRL_VALUE,
-	.cm2ioctl		= MT41J512M8RH125_IOCTRL_VALUE,
-	.dt0ioctl		= MT41J512M8RH125_IOCTRL_VALUE,
-	.dt1ioctl		= MT41J512M8RH125_IOCTRL_VALUE,
-};
-
-const struct ctrl_ioregs ioregs = {
-	.cm0ioctl		= MT47H128M16RT25E_IOCTRL_VALUE,
-	.cm1ioctl		= MT47H128M16RT25E_IOCTRL_VALUE,
-	.cm2ioctl		= MT47H128M16RT25E_IOCTRL_VALUE,
-	.dt0ioctl		= MT47H128M16RT25E_IOCTRL_VALUE,
-	.dt1ioctl		= MT47H128M16RT25E_IOCTRL_VALUE,
+const struct ctrl_ioregs ioregs_dhcom_2gb = {
+	.cm0ioctl		= NT5CB128M15FP_IOCTRL_VALUE,
+	.cm1ioctl		= NT5CB128M15FP_IOCTRL_VALUE,
+	.cm2ioctl		= NT5CB128M15FP_IOCTRL_VALUE,
+	.dt0ioctl		= NT5CB128M15FP_IOCTRL_VALUE,
+	.dt1ioctl		= NT5CB128M15FP_IOCTRL_VALUE,
 };
 
 void sdram_init(void)
 {
-	__maybe_unused struct am335x_baseboard_id header;
-
-	if (read_eeprom(&header) < 0)
-		puts("Could not get board ID.\n");
-
-	if (board_is_evm_sk(&header)) {
-		/*
-		 * EVM SK 1.2A and later use gpio0_7 to enable DDR3.
-		 * This is safe enough to do on older revs.
-		 */
-		gpio_request(GPIO_DDR_VTT_EN, "ddr_vtt_en");
-		gpio_direction_output(GPIO_DDR_VTT_EN, 1);
-	}
-
-	if (board_is_evm_sk(&header))
-		config_ddr(303, &ioregs_evmsk, &ddr3_data,
-			   &ddr3_cmd_ctrl_data, &ddr3_emif_reg_data, 0);
-	else if (board_is_bone_lt(&header))
-		config_ddr(400, &ioregs_bonelt,
-			   &ddr3_beagleblack_data,
-			   &ddr3_beagleblack_cmd_ctrl_data,
-			   &ddr3_beagleblack_emif_reg_data, 0);
-	else if (board_is_evm_15_or_later(&header))
-		config_ddr(303, &ioregs_evm15, &ddr3_evm_data,
-			   &ddr3_evm_cmd_ctrl_data, &ddr3_evm_emif_reg_data, 0);
-	else
-		config_ddr(266, &ioregs, &ddr2_data,
-			   &ddr2_cmd_ctrl_data, &ddr2_emif_reg_data, 0);
+ 	config_ddr(400, &ioregs_dhcom_2gb,
+			   &ddr3_dhcom_2gb_data,
+			   &ddr3_dhcom_2gb_cmd_ctrl_data,
+			   &ddr3_emif_reg_data_dhcom_2gb, 0);
 }
 #endif
 
