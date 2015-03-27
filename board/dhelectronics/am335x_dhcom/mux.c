@@ -246,7 +246,7 @@ void enable_i2c0_pin_mux(void)
 	configure_module_pin_mux(i2c0_pin_mux);
 }
 
-void enable_board_pin_mux(struct am335x_baseboard_id *header)
+void enable_board_pin_mux()
 {
         /* Pinmux DHCOM */
         
