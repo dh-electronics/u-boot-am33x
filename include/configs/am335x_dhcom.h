@@ -207,7 +207,6 @@
 
 /* PMIC support */
 #define CONFIG_POWER_TPS65217
-#define CONFIG_POWER_TPS65910
 
 /* SPL */
 #ifndef CONFIG_NOR_BOOT

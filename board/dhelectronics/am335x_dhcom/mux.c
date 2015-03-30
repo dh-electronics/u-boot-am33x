@@ -223,6 +223,12 @@ static struct module_pin_mux parallel_lcd_pin_mux[] = { /* DHCOM LCD Interface*/
 	{-1},
 };
 
+static struct module_pin_mux usbhost_pin_mux[] = { /* usb1 is used for DHCOM USB Host 1 */
+	{OFFSET(usb1_drvvbus), (MODE(0) | PULLUDEN | PULLDOWN_EN)},	/* USB_PWR_EN */
+	{OFFSET(mii1_rxdv), (MODE(7) | PULLUDEN | PULLDOWN_EN)},	/* USB_HOST_OC: GPIO Port 3 Pin 4 */
+	{-1},
+};
+
 
 #if defined(CONFIG_NOR_BOOT)
 void enable_norboot_pin_mux(void)
@@ -292,4 +298,7 @@ void enable_board_pin_mux()
 
         /* Parallel RGB LCD interface */
         configure_module_pin_mux(parallel_lcd_pin_mux);
+
+        /* USB Host 1 (additional pins) */
+        configure_module_pin_mux(usbhost_pin_mux);
 }
