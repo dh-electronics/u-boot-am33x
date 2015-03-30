@@ -44,6 +44,7 @@
 #define CONFIG_ENV_SIZE			(128 << 10)
 
 /* Enhance our eMMC support / experience. */
+#define CONFIG_HSMMC2_8BIT /* use 8-bit interface */
 #define CONFIG_CMD_GPT
 #define CONFIG_EFI_PARTITION
 
