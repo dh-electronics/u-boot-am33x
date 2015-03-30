@@ -218,6 +218,18 @@
 #define CONFIG_BOOTCOUNT_AM33XX
 #define CONFIG_SYS_BOOTCOUNT_BE
 
+ /* Only interrupt autoboot if <del> is pressed. Otherwise, garbage
+  * data on the serial line may interrupt the boot sequence.
+  */
+#undef CONFIG_BOOTDELAY
+#define CONFIG_BOOTDELAY		0
+#define CONFIG_ZERO_BOOTDELAY_CHECK
+#define CONFIG_AUTOBOOT
+#define CONFIG_AUTOBOOT_KEYED
+#define CONFIG_AUTOBOOT_PROMPT		\
+	"Press DEL to abort autoboot\n"
+#define CONFIG_AUTOBOOT_STOP_STR	"\x7f"
+
 /* USB gadget RNDIS */
 /* #define CONFIG_SPL_MUSB_NEW_SUPPORT */
 
