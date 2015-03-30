@@ -106,6 +106,7 @@ int rtc_set( struct rtc_time *tmp )
 	return ret;
 }
 
+#if defined(CONFIG_SYS_RV3029_TCR)
 /* sets EERE-Bit  (automatic EEPROM refresh) */
 static void set_eere_bit(int state)
 {
@@ -139,6 +140,7 @@ static int wait_eebusy(int loops)
 	}
 	return i;
 }
+#endif
 
 void rtc_reset (void)
 {
