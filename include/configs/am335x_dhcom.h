@@ -445,7 +445,9 @@
 #define CONFIG_SPI_FLASH_SPANSION
 #define CONFIG_SF_DEFAULT_SPEED		48000000
 
-/* Network. */
+/* Network. - On DHCOM AM335x we have RMII */
+#undef CONFIG_MII
+#define CONFIG_RMII
 #define CONFIG_PHY_GIGE
 #define CONFIG_PHYLIB
 #define CONFIG_PHY_SMSC
