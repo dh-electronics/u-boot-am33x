@@ -323,9 +323,9 @@ int board_eth_init(bd_t *bis)
 			eth_setenv_enetaddr("eth1addr", mac_addr);
 	}
 
-	writel(MII_MODE_ENABLE, &cdev->miisel);
+	writel(RMII_MODE_ENABLE | RMII_CHIPCKL_ENABLE, &cdev->miisel);
 	cpsw_slaves[0].phy_if = cpsw_slaves[1].phy_if =
-			PHY_INTERFACE_MODE_MII;
+			PHY_INTERFACE_MODE_RMII;
 
 
 	rv = cpsw_register(&cpsw_data);
@@ -334,29 +334,8 @@ int board_eth_init(bd_t *bis)
 	else
 		n += rv;
 #endif
-
-	/*
-	 *
-	 * CPSW RGMII Internal Delay Mode is not supported in all PVT
-	 * operating points.  So we must set the TX clock delay feature
-	 * in the AR8051 PHY.  Since we only support a single ethernet
-	 * device in U-Boot, we only do this for the first instance.
-	 */
-#define AR8051_PHY_DEBUG_ADDR_REG	0x1d
-#define AR8051_PHY_DEBUG_DATA_REG	0x1e
-#define AR8051_DEBUG_RGMII_CLK_DLY_REG	0x5
-#define AR8051_RGMII_TX_CLK_DLY		0x100
-
-	if (board_is_evm_sk(&header) || board_is_gp_evm(&header)) {
-		const char *devname;
-		devname = miiphy_get_current_dev();
-
-		miiphy_write(devname, 0x0, AR8051_PHY_DEBUG_ADDR_REG,
-				AR8051_DEBUG_RGMII_CLK_DLY_REG);
-		miiphy_write(devname, 0x0, AR8051_PHY_DEBUG_DATA_REG,
-				AR8051_RGMII_TX_CLK_DLY);
-	}
 #endif
+
 #if defined(CONFIG_USB_ETHER) && \
 	(!defined(CONFIG_SPL_BUILD) || defined(CONFIG_SPL_USBETH_SUPPORT))
 	if (is_valid_ether_addr(mac_addr))
