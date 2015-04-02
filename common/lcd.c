@@ -7,7 +7,7 @@
  * SPDX-License-Identifier:	GPL-2.0+
  */
 
-/* #define DEBUG */
+#define DEBUG 
 #include <config.h>
 #include <common.h>
 #include <command.h>
@@ -26,7 +26,7 @@
 #ifdef CONFIG_LCD_LOGO
 #include <bmp_logo.h>
 #include <bmp_logo_data.h>
-#if (CONSOLE_COLOR_WHITE >= BMP_LOGO_OFFSET) && (LCD_BPP != LCD_COLOR16)
+#if (CONSOLE_COLOR_WHITE >= BMP_LOGO_OFFSET) && (LCD_BPP != LCD_COLOR16 && LCD_BPP != LCD_COLOR32)
 #error Default Color Map overlaps with Logo Color Map
 #endif
 #endif
@@ -57,6 +57,9 @@ int lcd_line_length;
 char lcd_is_enabled = 0;
 static void *lcd_base;			/* Start of framebuffer memory	*/
 static char lcd_flush_dcache;	/* 1 to flush dcache after each lcd update */
+
+static void splash_align_axis(int *axis, unsigned long panel_size,
+					unsigned long picture_size);
 
 /* Flush LCD activity to the caches */
 void lcd_sync(void)
@@ -351,7 +354,32 @@ void lcd_logo_plot(int x, int y)
 	debug("Logo: width %d  height %d  colors %d\n",
 	      BMP_LOGO_WIDTH, BMP_LOGO_HEIGHT, BMP_LOGO_COLORS);
 
-	if (bpix < 12) {
+#ifdef CONFIG_SPLASH_SCREEN_ALIGN
+	splash_align_axis(&x, panel_info.vl_col, BMP_LOGO_WIDTH);
+	splash_align_axis(&y, panel_info.vl_row, BMP_LOGO_HEIGHT);
+#endif /* CONFIG_SPLASH_SCREEN_ALIGN */
+
+        if (bpix == 32) {
+                u16 col16;
+                fb = (uchar *)(lcd_base +
+		        (y + BMP_LOGO_HEIGHT-1) * lcd_line_length + x * bpix/8);
+		bmap = &bmp_logo_bitmap[BMP_LOGO_WIDTH * BMP_LOGO_HEIGHT - (BMP_LOGO_WIDTH)];
+
+		for (i = 0; i < BMP_LOGO_HEIGHT; ++i) {
+			for (j = 0; j < BMP_LOGO_WIDTH; j++) {
+
+				col16 = bmp_logo_palette[(bmap[j]-16)];
+
+				*(fb++) = (uchar) 0x0F | ((col16 & 0x0F) << 4); // blue
+				*(fb++)	= (uchar) 0x0F | ((col16 & 0xF0)); // green
+				*(fb++) = (uchar) 0x0F | (((col16 >> 8) & 0x0F) << 4); // red
+				*(fb++) = 0x0;
+			}
+
+			bmap -= (BMP_LOGO_WIDTH);
+			fb   -= (lcd_line_length + (BMP_LOGO_WIDTH)*(bpix / 8));
+		}
+	} else if (bpix < 12) {
 		WATCHDOG_RESET();
 		lcd_logo_set_cmap();
 		WATCHDOG_RESET();
@@ -610,7 +638,7 @@ int lcd_display_bitmap(ulong bmp_image, int x, int y)
 	 * and displaying 24bpp BMPs on 32bpp LCDs
 	 * */
 	if (bpix != bmp_bpix &&
-	    !(bmp_bpix == 8 && bpix == 16) &&
+	    !(bmp_bpix == 16 && bpix == 32) &&
 	    !(bmp_bpix == 24 && bpix == 32)) {
 		printf ("Error: %d bit/pixel mode, but BMP has %d bit/pixel\n",
 			bpix, get_unaligned_le16(&bmp->header.bit_count));
@@ -639,10 +667,10 @@ int lcd_display_bitmap(ulong bmp_image, int x, int y)
 	fb   = (uchar *)(lcd_base +
 		(y + height - 1) * lcd_line_length + x * bpix / 8);
 
-	switch (bmp_bpix) {
-	case 1:
-	case 8: {
-		cmap_base = configuration_get_cmap();
+        switch (bmp_bpix) {
+        case 1:
+        case 8: {
+                cmap_base = configuration_get_cmap();
 #ifdef CONFIG_LCD_BMP_RLE8
 		u32 compression = get_unaligned_le32(&bmp->header.compression);
 		debug("compressed %d %d\n", compression, BMP_BI_RLE8);
@@ -694,10 +722,17 @@ int lcd_display_bitmap(ulong bmp_image, int x, int y)
 		for (i = 0; i < height; ++i) {
 			WATCHDOG_RESET();
 			for (j = 0; j < width; j++)
-				fb_put_word(&fb, &bmap);
+			        if (bpix == 32) {
+				        *(fb++) = (*(bmap) & 0x1F) << 3 ;
+				        *(fb) 	= ((*(bmap++) & 0xE0) >> 3);
+				        *(fb++)  |= ((*(bmap) & 0x07) << 5);
+				        *(fb++) = *(bmap++) & 0xF8;
+				        *(fb++) = 0;
+				} else
+				        fb_put_word(&fb, &bmap);
 
 			bmap += (padded_width - width) * 2;
-			fb -= width * 2 + lcd_line_length;
+			fb -= lcd_line_length + width * (bpix / 8);
 		}
 		break;
 #endif /* CONFIG_BMP_16BPP */
@@ -710,6 +745,7 @@ int lcd_display_bitmap(ulong bmp_image, int x, int y)
 				*(fb++) = *(bmap++);
 				*(fb++) = 0;
 			}
+			bmap += (padded_width - width) * 3;
 			fb -= lcd_line_length + width * (bpix / 8);
 		}
 		break;
@@ -723,6 +759,7 @@ int lcd_display_bitmap(ulong bmp_image, int x, int y)
 				*(fb++) = *(bmap++);
 				*(fb++) = *(bmap++);
 			}
+			bmap += (padded_width - width) * 4;
 			fb -= lcd_line_length + width * (bpix / 8);
 		}
 		break;
@@ -738,7 +775,7 @@ int lcd_display_bitmap(ulong bmp_image, int x, int y)
 
 static void lcd_logo(void)
 {
-	lcd_logo_plot(0, 0);
+	lcd_logo_plot(BMP_ALIGN_CENTER, BMP_ALIGN_CENTER);
 
 #ifdef CONFIG_LCD_INFO
 	lcd_set_col(LCD_INFO_X / VIDEO_FONT_WIDTH);
