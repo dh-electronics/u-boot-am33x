@@ -201,6 +201,7 @@
 
 /* RTC */
 #define CONFIG_CMD_DATE
+#define CONFIG_CMD_TIME
 #define CONFIG_SYS_RTC_BUS_NUM		0 /* I2C0 */
 #define CONFIG_RTC_RV3029
 #define CONFIG_SYS_I2C_RTC_ADDR		0x56 /* RTC RV-3029-C3 */
@@ -504,5 +505,25 @@
 					"4m(kernel),-(rootfs)"
 #endif
 #endif  /* NOR support */
+
+/* LCD support */
+#define CONFIG_AM335X_LCD
+#define CONFIG_LCD
+#define CONFIG_LCD_LOGO
+#define CONFIG_LCD_NOSTDOUT
+#define CONFIG_SYS_BLACK_ON_WHITE
+#define LCD_BPP	LCD_COLOR32
+
+#define CONFIG_SPLASH_SCREEN
+#define CONFIG_SPLASHIMAGE_GUARD
+#define CONFIG_SPLASH_SCREEN_ALIGN
+
+#define CONFIG_VIDEO_BMP_GZIP
+#define CONFIG_SYS_VIDEO_LOGO_MAX_SIZE	(1366*767*4)
+#define CONFIG_CMD_UNZIP
+#define CONFIG_CMD_BMP
+#define CONFIG_BMP_16BPP
+#define CONFIG_BMP_24BMP
+#define CONFIG_BMP_32BPP
 
 #endif	/* ! __CONFIG_AM335X_DHCOM_H */
