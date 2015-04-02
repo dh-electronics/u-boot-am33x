@@ -31,12 +31,11 @@
 #include <environment.h>
 #include <watchdog.h>
 #include <environment.h>
+#include <lcd.h>
 #include "board.h"
+#include "../../../drivers/video/am335x-fb.h"
 
 DECLARE_GLOBAL_DATA_PTR;
-
-/* GPIO that controls power to DDR on EVM-SK */
-#define GPIO_DDR_VTT_EN		7
 
 static struct ctrl_dev *cdev = (struct ctrl_dev *)CTRL_DEVICE_BASE;
 
@@ -97,6 +96,27 @@ const struct dpll_params dpll_ddr_dhcom = {
 void am33xx_spl_board_init(void)
 {
 	int mpu_vdd;
+	struct cm_perpll *const cmper = (struct cm_perpll *)CM_PER;
+	
+	/*
+	 * enable additional clocks 
+	 */
+	u32 *const clk_domains[] = { 0 };
+
+	u32 *const clk_modules_kwbspecific[] = {
+		&cmper->epwmss0clkctrl,
+		&cmper->epwmss1clkctrl,
+		&cmper->epwmss2clkctrl,
+		&cmper->lcdclkctrl,
+		&cmper->lcdcclkstctrl,
+		0
+	};
+	do_enable_clocks(clk_domains, clk_modules_kwbspecific, 1);
+	/* setup LCD-Pixel Clock */
+	writel(0x2, CM_DPLL + 0x34);
+	
+	/* power-OFF LCD-Display */
+	// gpio_direction_output(LCD_PWR, 0);
 
 	/* Get the frequency */
 	dpll_mpu_opp100.m = am335x_get_efuse_mpu_max_freq(cdev);
@@ -350,3 +370,294 @@ int board_eth_init(bd_t *bis)
 	return n;
 }
 #endif
+
+#ifdef CONFIG_USE_FDT
+  #define FDTPROP(a, b, c) fdt_getprop_u32_default((void *)a, b, c, ~0UL)
+  #define PATHTIM "/panel/display-timings/default"
+  #define PATHINF "/panel/panel-info"
+#endif
+/* --------------------------------------------------------------------------*/
+#if defined(CONFIG_LCD) && defined(CONFIG_AM335X_LCD) && \
+	!defined(CONFIG_SPL_BUILD)
+int load_lcdtiming(struct am335x_lcdpanel *panel)
+{
+	struct am335x_lcdpanel pnltmp;
+#ifdef CONFIG_USE_FDT_DO_NOT
+	u32 dtbaddr = getenv_ulong("dtbaddr", 16, ~0UL);
+	u32 dtbprop;
+
+	if (dtbaddr == ~0UL) {
+		puts("load_lcdtiming: failed to get 'dtbaddr' from env!\n");
+		return -1;
+	}
+	memcpy(&pnltmp, (void *)panel, sizeof(struct am335x_lcdpanel));
+
+	pnltmp.hactive = FDTPROP(dtbaddr, PATHTIM, "hactive");
+	pnltmp.vactive = FDTPROP(dtbaddr, PATHTIM, "vactive");
+	pnltmp.bpp = FDTPROP(dtbaddr, PATHINF, "bpp");
+	pnltmp.hfp = FDTPROP(dtbaddr, PATHTIM, "hfront-porch");
+	pnltmp.hbp = FDTPROP(dtbaddr, PATHTIM, "hback-porch");
+	pnltmp.hsw = FDTPROP(dtbaddr, PATHTIM, "hsync-len");
+	pnltmp.vfp = FDTPROP(dtbaddr, PATHTIM, "vfront-porch");
+	pnltmp.vbp = FDTPROP(dtbaddr, PATHTIM, "vback-porch");
+	pnltmp.vsw = FDTPROP(dtbaddr, PATHTIM, "vsync-len");
+	pnltmp.pup_delay = FDTPROP(dtbaddr, PATHTIM, "pupdelay");
+	pnltmp.pon_delay = FDTPROP(dtbaddr, PATHTIM, "pondelay");
+
+	/* calc. proper clk-divisor */
+	dtbprop = FDTPROP(dtbaddr, PATHTIM, "clock-frequency");
+	if (dtbprop != ~0UL)
+		pnltmp.pxl_clk_div = 192000000 / dtbprop;
+	else
+		pnltmp.pxl_clk_div = ~0UL;
+
+	/* check polarity of control-signals */
+	dtbprop = FDTPROP(dtbaddr, PATHTIM, "hsync-active");
+	if (dtbprop == 0)
+		pnltmp.pol |= HSYNC_INVERT;
+	dtbprop = FDTPROP(dtbaddr, PATHTIM, "vsync-active");
+	if (dtbprop == 0)
+		pnltmp.pol |= VSYNC_INVERT;
+	dtbprop = FDTPROP(dtbaddr, PATHINF, "sync-ctrl");
+	if (dtbprop == 1)
+		pnltmp.pol |= HSVS_CONTROL;
+	dtbprop = FDTPROP(dtbaddr, PATHINF, "sync-edge");
+	if (dtbprop == 1)
+		pnltmp.pol |= HSVS_RISEFALL;
+	dtbprop = FDTPROP(dtbaddr, PATHTIM, "pixelclk-active");
+	if (dtbprop == 0)
+		pnltmp.pol |= PXCLK_INVERT;
+	dtbprop = FDTPROP(dtbaddr, PATHTIM, "de-active");
+	if (dtbprop == 0)
+		pnltmp.pol |= DE_INVERT;
+#else
+	pnltmp.hactive = 800;
+	pnltmp.vactive = 480;
+	pnltmp.bpp = 32;
+	pnltmp.hfp = 42;
+	pnltmp.hbp = 86;
+	pnltmp.hsw = 128;
+	pnltmp.vfp = 10;
+	pnltmp.vbp = 33;
+	pnltmp.vsw = 2;
+	pnltmp.pxl_clk_div = 192000000 / 33260000;
+	pnltmp.pol = HSYNC_INVERT | VSYNC_INVERT | PXCLK_INVERT /* | DE_INVERT */;
+	pnltmp.pup_delay = 0; 
+	pnltmp.pon_delay = 0;
+#endif
+	if (
+	   ~0UL == (pnltmp.hactive) ||
+	   ~0UL == (pnltmp.vactive) ||
+	   ~0UL == (pnltmp.bpp) ||
+	   ~0UL == (pnltmp.hfp) ||
+	   ~0UL == (pnltmp.hbp) ||
+	   ~0UL == (pnltmp.hsw) ||
+	   ~0UL == (pnltmp.vfp) ||
+	   ~0UL == (pnltmp.vbp) ||
+	   ~0UL == (pnltmp.vsw) ||
+	   ~0UL == (pnltmp.pxl_clk_div) ||
+	   ~0UL == (pnltmp.pol) ||
+	   ~0UL == (pnltmp.pup_delay) ||
+	   ~0UL == (pnltmp.pon_delay)
+	   ) {
+		puts("lcd-settings in env/dtb incomplete!\n");
+		printf("display-timings:\n"
+			"================\n"
+			"hactive: %d\n"
+			"vactive: %d\n"
+			"bpp    : %d\n"
+			"hfp    : %d\n"
+			"hbp    : %d\n"
+			"hsw    : %d\n"
+			"vfp    : %d\n"
+			"vbp    : %d\n"
+			"vsw    : %d\n"
+			"pxlclk : %d\n"
+			"pol    : 0x%08x\n"
+			"pondly : %d\n",
+			pnltmp.hactive, pnltmp.vactive, pnltmp.bpp,
+			pnltmp.hfp, pnltmp.hbp, pnltmp.hsw,
+			pnltmp.vfp, pnltmp.vbp, pnltmp.vsw,
+			pnltmp.pxl_clk_div, pnltmp.pol, pnltmp.pon_delay);
+
+		return -1;
+	}
+	debug("lcd-settings in env complete, taking over.\n");
+	memcpy((void *)panel,
+	       (void *)&pnltmp,
+	       sizeof(struct am335x_lcdpanel));
+
+	return 0;
+}
+
+#ifdef CONFIG_USE_FDT_DO_NOT
+static int load_devicetree(void)
+{
+	char *dtbname = getenv("dtb");
+	char *dtbdev = getenv("dtbdev");
+	char *dtppart = getenv("dtbpart");
+	u32 dtbaddr = getenv_ulong("dtbaddr", 16, ~0UL);
+	loff_t dtbsize;
+
+	if (!dtbdev || !dtbdev) {
+		puts("load_devicetree: <dtbdev>/<dtbpart> missing.\n");
+		return -1;
+	}
+
+	if (fs_set_blk_dev(dtbdev, dtppart, FS_TYPE_EXT)) {
+		puts("load_devicetree: set_blk_dev failed.\n");
+		return -1;
+	}
+	if (dtbname && dtbaddr != ~0UL) {
+		if (fs_read(dtbname, dtbaddr, 0, 0, &dtbsize) == 0) {
+			gd->fdt_blob = (void *)dtbaddr;
+			gd->fdt_size = dtbsize;
+			debug("loaded %d bytes of dtb onto 0x%08x\n",
+			      (u32)dtbsize, dtbaddr);
+			return dtbsize;
+		}
+		puts("load_devicetree: load dtb failed,file does not exist!\n");
+	}
+
+	puts("load_devicetree: <dtb>/<dtbaddr> missing!\n");
+	return -1;
+}
+#endif
+
+void lcdpower(int on)
+{
+	u32 pin, swval, i;
+#ifdef CONFIG_USE_FDT_DO_NOT
+	u32 dtbaddr = getenv_ulong("dtbaddr", 16, ~0UL);
+
+	if (dtbaddr == ~0UL) {
+		puts("lcdpower: failed to get 'dtbaddr' from env!\n");
+		return;
+	}
+	pin = FDTPROP(dtbaddr, PATHINF, "pwrpin");
+#else
+	pin = getenv_ulong("ds1_pwr", 16, ~0UL);
+#endif
+	if (pin == ~0UL) {
+		/* puts("no pwrpin in dtb/env, cannot powerup display!\n"); */
+		pin = 111;
+		return;
+	}
+
+	for (i = 0; i < 3; i++) {
+		if (pin != 0) {
+			swval = pin & 0x80 ? 0 : 1;
+			if (on)
+				gpio_direction_output(pin & 0x7F, swval);
+			else
+				gpio_direction_output(pin & 0x7F, !swval);
+
+			debug("switched pin %d to %d\n", pin & 0x7F, swval);
+		}
+		pin >>= 8;
+	}
+}
+
+vidinfo_t	panel_info = {
+		.vl_col = 800,	/*
+				 * give full resolution for allocating enough
+				 * memory
+				 */
+		.vl_row = 480,
+		.vl_bpix = 5,
+		.priv = 0
+};
+
+void lcd_ctrl_init(void *lcdbase)
+{
+	struct am335x_lcdpanel lcd_panel;
+#ifdef CONFIG_USE_FDT_DO_NOT
+	/* TODO: is there a better place to load the dtb ? */
+	load_devicetree();
+#endif
+        printf("lcd_ctrl_init() entered!");
+        
+	memset(&lcd_panel, 0, sizeof(struct am335x_lcdpanel));
+	if (load_lcdtiming(&lcd_panel) != 0)
+		return;
+		
+        printf("load_lcdtiming() done!");
+
+	lcd_panel.panel_power_ctrl = &lcdpower;
+
+	if (0 != am335xfb_init(&lcd_panel)) {
+		printf("ERROR: failed to initialize video!");
+	} else {
+	        printf("am335xfb_init() done!");
+	}
+	/*
+	 * modifiy panel info to 'real' resolution, to operate correct with
+	 * lcd-framework.
+	 */
+	panel_info.vl_col = lcd_panel.hactive;
+	panel_info.vl_row = lcd_panel.vactive;
+
+	lcd_set_flush_dcache(1);
+	
+	printf("lcd_ctrl_init() done!");
+}
+
+void lcd_enable(void)
+{
+#ifdef DO_NET_EXECUTE
+#ifdef CONFIG_USE_FDT
+	u32 dtbaddr = getenv_ulong("dtbaddr", 16, ~0UL);
+
+	if (dtbaddr == ~0UL) {
+		puts("lcdpower: failed to get 'dtbaddr' from env!\n");
+		return;
+	}
+	unsigned int driver = FDTPROP(dtbaddr, PATHINF, "brightdrv");
+	unsigned int bright = FDTPROP(dtbaddr, PATHINF, "brightdef");
+	unsigned int pwmfrq = FDTPROP(dtbaddr, PATHINF, "brightfdim");
+#else
+	unsigned int driver = getenv_ulong("ds1_bright_drv", 16, 0UL);
+	unsigned int bright = getenv_ulong("ds1_bright_def", 10, 50);
+	unsigned int pwmfrq = getenv_ulong("ds1_pwmfreq", 10, ~0UL);
+#endif
+	unsigned int tmp;
+	struct gptimer *const timerhw = (struct gptimer *)DM_TIMER6_BASE;
+
+	bright = bright != ~0UL ? bright : 50;
+
+	switch (driver) {
+	case 0:	/* PMIC LED-Driver */
+		/* brightness level */
+		tps65217_reg_write(TPS65217_PROT_LEVEL_NONE,
+				   TPS65217_WLEDCTRL2, bright, 0xFF);
+		/* turn on light */
+		tps65217_reg_write(TPS65217_PROT_LEVEL_NONE,
+				   TPS65217_WLEDCTRL1, 0x0A, 0xFF);
+		break;
+	case 1: /* PWM using timer6 */
+		if (pwmfrq != ~0UL) {
+			timerhw->tiocp_cfg = TCFG_RESET;
+			udelay(10);
+			while (timerhw->tiocp_cfg & TCFG_RESET)
+				;
+			tmp = ~0UL-(V_OSCK/pwmfrq);	/* bottom value */
+			timerhw->tldr = tmp;
+			timerhw->tcrr = tmp;
+			tmp = tmp + ((V_OSCK/pwmfrq)/100) * bright;
+			timerhw->tmar = tmp;
+			timerhw->tclr = (TCLR_PT | (2 << TCLR_TRG_SHIFT) |
+					TCLR_CE | TCLR_AR | TCLR_ST);
+		} else {
+			puts("invalid pwmfrq in env/dtb! skip PWM-setup.\n");
+		}
+		break;
+	default:
+		puts("no suitable backlightdriver in env/dtb!\n");
+		break;
+	}
+#endif
+}
+#elif CONFIG_SPL_BUILD
+#else
+#error "LCD-support with a suitable FB-Driver is mandatory !"
+#endif /* CONFIG_LCD */
