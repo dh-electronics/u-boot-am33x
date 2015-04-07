@@ -465,7 +465,7 @@ void putc(const char c)
 		return;
 #endif
 
-#ifdef CONFIG_DISABLE_CONSOLE
+#if defined(CONFIG_DISABLE_CONSOLE) || defined(CONFIG_DHCOM)
 	if (gd->flags & GD_FLG_DISABLE_CONSOLE)
 		return;
 #endif
@@ -497,7 +497,7 @@ void puts(const char *s)
 		return;
 #endif
 
-#ifdef CONFIG_DISABLE_CONSOLE
+#if defined(CONFIG_DISABLE_CONSOLE) || defined(CONFIG_DHCOM)
 	if (gd->flags & GD_FLG_DISABLE_CONSOLE)
 		return;
 #endif
