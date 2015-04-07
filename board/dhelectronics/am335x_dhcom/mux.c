@@ -111,6 +111,7 @@ static struct module_pin_mux rmii1_pin_mux[] = { /* default eth1 100Mbit on DHCO
 	{OFFSET(mii1_txd0), MODE(1)},			/* RMII1_TXD0 */
 	{OFFSET(mii1_rxd1), MODE(1) | RXACTIVE},	/* RMII1_RXD1 */
 	{OFFSET(mii1_rxd0), MODE(1) | RXACTIVE},	/* RMII1_RXD0 */
+	{OFFSET(rmii1_refclk), MODE(0) | RXACTIVE},	/* RMII1_REFCLK */
 	{OFFSET(mdio_data), MODE(0) | RXACTIVE | PULLUP_EN}, /* MDIO_DATA */
 	{OFFSET(mdio_clk), MODE(0) | PULLUP_EN},	/* MDIO_CLK */
 	{-1},
@@ -130,6 +131,7 @@ static struct module_pin_mux rmii2_pin_mux[] = { /* second eth2 100Mbit on DHCOM
 	{OFFSET(gpmc_a5), MODE(3)},			/* RMII2_TXD0 */
 	{OFFSET(gpmc_a10), MODE(3) | RXACTIVE},	        /* RMII2_RXD1 */
 	{OFFSET(gpmc_a11), MODE(3) | RXACTIVE},	        /* RMII2_RXD0 */
+	{OFFSET(mii1_col), MODE(1) | RXACTIVE},	        /* RMII2_REFCLK */
 	{OFFSET(mdio_data), MODE(0) | RXACTIVE | PULLUP_EN}, /* MDIO_DATA */
 	{OFFSET(mdio_clk), MODE(0) | PULLUP_EN},	/* MDIO_CLK */
 	{-1},
@@ -228,14 +230,6 @@ static struct module_pin_mux usbhost_pin_mux[] = { /* usb1 is used for DHCOM USB
 	{OFFSET(mii1_rxdv), (MODE(7) | PULLUDEN | PULLDOWN_EN)},	/* USB_HOST_OC: GPIO Port 3 Pin 4 */
 	{-1},
 };
-
-
-#if defined(CONFIG_NOR_BOOT)
-void enable_norboot_pin_mux(void)
-{
-	configure_module_pin_mux(bone_norcape_pin_mux);
-}
-#endif
 
 void enable_uart0_pin_mux(void)
 {

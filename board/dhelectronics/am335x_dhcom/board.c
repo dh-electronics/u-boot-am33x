@@ -343,6 +343,7 @@ int board_eth_init(bd_t *bis)
 			eth_setenv_enetaddr("eth1addr", mac_addr);
 	}
 
+        /* Set RMII Mode for RMII1 & RMII2, set REFCLK to input mode */
 	writel(RMII_MODE_ENABLE | RMII_CHIPCKL_ENABLE, &cdev->miisel);
 	cpsw_slaves[0].phy_if = cpsw_slaves[1].phy_if =
 			PHY_INTERFACE_MODE_RMII;
