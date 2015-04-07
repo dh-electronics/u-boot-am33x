@@ -303,6 +303,11 @@ static struct cpsw_platform_data cpsw_data = {
 	 !defined(CONFIG_SPL_BUILD))
 int board_eth_init(bd_t *bis)
 {
+        /*
+         * dhcom am335x:
+         *      VIO voltage is connected to 3V3 (not switchable)
+         *      Reset lines of the ethernet phy are connected to system reset line
+         */
 	int rv, n = 0;
 	uint8_t mac_addr[6];
 	uint32_t mac_hi, mac_lo;
