@@ -560,11 +560,11 @@ void lcdpower(int on)
 }
 
 vidinfo_t	panel_info = {
-		.vl_col = 800,	/*
+		.vl_col = 2048,	/*
 				 * give full resolution for allocating enough
 				 * memory
 				 */
-		.vl_row = 480,
+		.vl_row = 2048,
 		.vl_bpix = 5,
 		.priv = 0
 };
@@ -576,21 +576,16 @@ void lcd_ctrl_init(void *lcdbase)
 	/* TODO: is there a better place to load the dtb ? */
 	load_devicetree();
 #endif
-        printf("lcd_ctrl_init() entered!");
         
 	memset(&lcd_panel, 0, sizeof(struct am335x_lcdpanel));
 	if (load_lcdtiming(&lcd_panel) != 0)
 		return;
 		
-        printf("load_lcdtiming() done!");
-
 	lcd_panel.panel_power_ctrl = &lcdpower;
 
 	if (0 != am335xfb_init(&lcd_panel)) {
 		printf("ERROR: failed to initialize video!");
-	} else {
-	        printf("am335xfb_init() done!");
-	}
+	} 
 	/*
 	 * modifiy panel info to 'real' resolution, to operate correct with
 	 * lcd-framework.
@@ -599,8 +594,6 @@ void lcd_ctrl_init(void *lcdbase)
 	panel_info.vl_row = lcd_panel.vactive;
 
 	lcd_set_flush_dcache(1);
-	
-	printf("lcd_ctrl_init() done!");
 }
 
 void lcd_enable(void)
