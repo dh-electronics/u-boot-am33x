@@ -122,6 +122,17 @@ static struct module_pin_mux rmii1_pin_mux[] = { /* default eth1 100Mbit on DHCO
  * If 100Mbit eth2 is required than it is not possible to use NAND
  */
 #ifndef CONFIG_GIGABIT_ETH_DHCOMX
+static struct module_pin_mux dhcom_gpio3_pin_mux[] = { /* DHCOM GPIOs - J:W  */
+	{OFFSET(mcasp0_ahclkx), (MODE(7) | PULLUDDIS | RXACTIVE)},	/* GPIO J , Port 3 Pin 21 */
+	{OFFSET(gpmc_a9), (MODE(7) | PULLUDDIS | RXACTIVE)},	/* GPIO K , Port 1 Pin 25 */
+	{OFFSET(gpmc_a8), (MODE(7) | PULLUDDIS | RXACTIVE)},	/* GPIO L , Port 1 Pin 24 */
+	{OFFSET(gpmc_a7), (MODE(7) | PULLUDDIS | RXACTIVE)},	/* GPIO M , Port 1 Pin 23 */
+	{OFFSET(gpmc_a6), (MODE(7) | PULLUDDIS | RXACTIVE)},	/* GPIO N , Port 1 Pin 22 */
+	{OFFSET(gpmc_a3), (MODE(7) | PULLUDDIS | RXACTIVE)},	/* GPIO O , Port 1 Pin 19 */
+	{OFFSET(gpmc_a2), (MODE(7) | PULLUDDIS | RXACTIVE)},	/* GPIO P , Port 1 Pin 18 */
+	{OFFSET(gpmc_a1), (MODE(7) | PULLUDDIS | RXACTIVE)},	/* GPIO Q , Port 1 Pin 17 */
+	{-1},
+};
 #ifndef CONFIG_NAND
 static struct module_pin_mux rmii2_pin_mux[] = { /* second eth2 100Mbit on DHCOM */
 	{OFFSET(gpmc_wpn), MODE(3) | RXACTIVE},	        /* RMII2_RXERR */
@@ -265,6 +276,10 @@ void enable_board_pin_mux()
         configure_module_pin_mux(dhcom_gpio2_pin_mux);
 #endif
         
+#ifndef CONFIG_GIGABIT_ETH_DHCOMX
+        /* Extended DHCOM GPIOs */
+        configure_module_pin_mux(dhcom_gpio3_pin_mux);
+#endif        
         /* I2C */
         configure_module_pin_mux(i2c0_pin_mux);
         configure_module_pin_mux(i2c2_pin_mux);
