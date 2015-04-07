@@ -33,6 +33,12 @@
 #define CONFIG_MACH_TYPE		MACH_TYPE_TIAM335EVM
 #define CONFIG_BOARD_LATE_INIT
 
+/* enable DHCOM specific code */
+#define CONFIG_DHCOM
+#ifdef CONFIG_DHCOM
+#define UBOOT_DH_VERSION "0.1.0.0"     /* DH - Version of U-Boot e.g. 1.4.0.1 */
+#endif
+
 /* Clock Defines */
 #define V_OSCK				24000000  /* Clock output from T2 */
 #define V_SCLK				(V_OSCK)
