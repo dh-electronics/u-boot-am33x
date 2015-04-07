@@ -99,6 +99,9 @@ typedef struct global_data {
 #endif
 	struct udevice *cur_serial_dev;	/* current serial device */
 	struct arch_global_data arch;	/* architecture-specific data */
+#ifdef CONFIG_DHCOM
+        settingsinfo_t  dh_board_settings;  /* DH settings block */	
+#endif
 } gd_t;
 #endif
 
@@ -115,5 +118,8 @@ typedef struct global_data {
 #define GD_FLG_ENV_READY	0x00080	/* Env. imported into hash table   */
 #define GD_FLG_SERIAL_READY	0x00100	/* Pre-reloc serial console ready  */
 #define GD_FLG_FULL_MALLOC_INIT	0x00200	/* Full malloc() is ready	   */
+
+#define ENABLE_PRINTF() gd->flags &= (~GD_FLG_DISABLE_CONSOLE);
+#define DISABLE_PRINTF() gd->flags |= GD_FLG_DISABLE_CONSOLE;
 
 #endif /* __ASM_GENERIC_GBL_DATA_H */
