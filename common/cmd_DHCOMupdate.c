@@ -132,71 +132,65 @@ void CopyAddressStringToCharArray(char *p_cCharArray, char *p_cPointer)
 //
 int update_flash_content (unsigned long ulOffset, unsigned long ulSDRAMBufferAddress, unsigned long ulBlocks, unsigned long ulFlashBlockSize)
 {
-    char *p_cEraseFlashBlock[4]         = {"sf", "erase", "12345671", "12345672"};  
-    char *p_cWriteFlashBlock[5]         = {"sf", "write", "12345673", "12345674", "12345675"};
-	char *p_cSFProbe[2]         = {"sf", "probe"};
+        char *p_cEraseFlashBlock[4] = {"sf", "erase", "12345671", "12345672"};  
+        char *p_cWriteFlashBlock[5] = {"sf", "write", "12345673", "12345674", "12345675"};
     
-    unsigned long i,j;
-    int ret_value = 0;
-    unsigned long ulWrittenBytes = 0;
+        unsigned long i;
+        int ret_value = 0;
 	
-    // Set FLash Block size
-    sprintf (p_cEraseFlashBlock[3], "%08x", (unsigned int)ulFlashBlockSize);
-    sprintf (p_cWriteFlashBlock[4], "%08x", (unsigned int)ulFlashBlockSize);     
+        // Set FLash Block size
+        sprintf (p_cEraseFlashBlock[3], "%08x", (unsigned int)ulFlashBlockSize);
+        sprintf (p_cWriteFlashBlock[4], "%08x", (unsigned int)ulFlashBlockSize);     
     
-	DISABLE_PRINTF()
-	do_spi_flash(NULL, 0, 2, p_cSFProbe);
-	ENABLE_PRINTF()
-	
-    // Set SDRAM Buffer address
-    sprintf (p_cWriteFlashBlock[2], "%08x", (unsigned int)(ulSDRAMBufferAddress));	
-	
-    for(j = 1, i = 0; i < ulBlocks; j++, i++) {
-        if(j == 51) {
-            printf ("\n                         ");
-            j = 1;
-        }
-        
-        // Set address/offset
-        sprintf (p_cEraseFlashBlock[2], "%08x", (unsigned int)(ulOffset + i * ulFlashBlockSize));
-        sprintf (p_cWriteFlashBlock[3], "%08x", (unsigned int)(ulOffset + i * ulFlashBlockSize));
+        DISABLE_PRINTF()
+        run_command("sf probe", 0);
+        ENABLE_PRINTF()
 
-	ulWrittenBytes = ulFlashBlockSize;
-		
-        // Erase flash block
-        printf ("e");
-        
-        DISABLE_PRINTF()
-        ret_value = do_spi_flash(NULL, 0, 4, p_cEraseFlashBlock);
-        ENABLE_PRINTF()
-        
-        // Exit on Erase ERROR
-        if(ret_value != 0) {
-            ret_value = (i << 2) | 1;
-            return ret_value;  
-        }
-        
-        // Write flash block
-        printf ("\bw");
-        DISABLE_PRINTF()
-        ret_value = do_spi_flash(NULL, 0, 5, p_cWriteFlashBlock);
-        ENABLE_PRINTF()
-        
-        // Exit on Write ERROR
-        if(ret_value != 0) {
-            ret_value = (i << 2) | 2;
-            return ret_value;    
-        }
-		
-        // Set SDRAM Buffer address
-        ulSDRAMBufferAddress = ulSDRAMBufferAddress + ulWrittenBytes;
-        sprintf (p_cWriteFlashBlock[2], "%08x", (unsigned int)(ulSDRAMBufferAddress));		
-        
-        printf ("\bd");
-    }
+        for(i = 0; i < ulBlocks; i++) {
     
-    printf ("]");      
-    return 0;
+                if((i%50) == 0) {
+                    printf ("\n                         ");
+                }
+                
+                // Set address/offset
+                sprintf (p_cEraseFlashBlock[2], "%08x", (unsigned int)(ulOffset + i * ulFlashBlockSize));
+
+                sprintf (p_cWriteFlashBlock[2], "%08x", (unsigned int)(ulSDRAMBufferAddress));
+                sprintf (p_cWriteFlashBlock[3], "%08x", (unsigned int)(ulOffset + i * ulFlashBlockSize));
+                
+                // Erase flash block
+                printf ("e");
+                
+                DISABLE_PRINTF()
+                ret_value = do_spi_flash(NULL, 0, 4, p_cEraseFlashBlock);
+                ENABLE_PRINTF()
+                
+                // Exit on Erase ERROR
+                if(ret_value != 0) {
+                    ret_value = (i << 2) | 1;
+                    return ret_value;  
+                }
+                
+                // Write flash block
+                printf ("\bw");
+                DISABLE_PRINTF()
+                ret_value = do_spi_flash(NULL, 0, 5, p_cWriteFlashBlock);
+                ENABLE_PRINTF()
+                
+                // Exit on Write ERROR
+                if(ret_value != 0) {
+                    ret_value = (i << 2) | 2;
+                    return ret_value;    
+                }
+		
+                // Set SDRAM Buffer address
+                ulSDRAMBufferAddress += ulFlashBlockSize;
+                
+                printf ("\bd");
+        }
+    
+        printf ("]");      
+        return 0;
 }
 
 //------------------------------------------------------------------------------
