@@ -37,6 +37,8 @@
 
 DECLARE_GLOBAL_DATA_PTR;
 
+void load_dh_settings_file(void);
+
 static struct ctrl_dev *cdev = (struct ctrl_dev *)CTRL_DEVICE_BASE;
 
 #ifndef CONFIG_SKIP_LOWLEVEL_INIT
@@ -239,6 +241,10 @@ int board_init(void)
 #ifdef CONFIG_BOARD_LATE_INIT
 int board_late_init(void)
 {
+	//set_dhcom_gpios();
+	//set_dhcom_backlight_gpio();
+	//burn_fuses();
+	//init_MAC_address();
 	return 0;
 }
 #endif
@@ -377,6 +383,143 @@ int board_eth_init(bd_t *bis)
 }
 #endif
 
+void set_dhcom_defaultsettings(volatile settingsinfo_t* dh_settings)
+{
+	/* initialize DH Global Data */
+	dh_settings->cLength = DEFAULT_SETTINGS_BLOCK_LENGTH;
+	dh_settings->cDisplayID = DEFAULT_SETTINGS_DISPLAY_ID;
+	dh_settings->wValidationID = 0;
+	dh_settings->wYResolution = DEFAULT_SETTINGS_Y_RESOLUTION;
+	dh_settings->wXResolution = DEFAULT_SETTINGS_X_RESOLUTION;
+	dh_settings->wLCDConfigFlags = DEFAULT_SETTINGS_LCD_CONFIG_FLAGS;
+	dh_settings->wPixelClock = DEFAULT_SETTINGS_PIXEL_CLOCK;
+	dh_settings->wVPulseWidth = DEFAULT_SETTINGS_V_PULSE_WIDTH;
+	dh_settings->wHPulseWidth = DEFAULT_SETTINGS_H_PULSE_WIDTH;
+	dh_settings->wHBackPorch = DEFAULT_SETTINGS_H_BACK_PORCH;
+	dh_settings->wHFrontPorch = DEFAULT_SETTINGS_H_FRONT_PORCH;
+	dh_settings->wVBackPorch = DEFAULT_SETTINGS_V_BACK_PORCH;
+	dh_settings->wVFrontPorch = DEFAULT_SETTINGS_V_FRONT_PORCH;
+	dh_settings->cACBiasTrans = DEFAULT_SETTINGS_AC_BIAS_TRANS;
+	dh_settings->cACBiasFreq = DEFAULT_SETTINGS_AC_BIAS_FREQ;
+	dh_settings->cDatalines = DEFAULT_SETTINGS_DATALINES;
+	dh_settings->wGPIODir = DEFAULT_SETTINGS_GPIO_DIRECTION;
+	dh_settings->wGPIOState = DEFAULT_SETTINGS_GPIO_STATE;
+	dh_settings->wHWConfigFlags = DEFAULT_SETTINGS_HW_CONFIG_FLAGS;
+}
+
+void set_dhcom_da_eeprom_settings(volatile settingsinfo_t* dh_settings)
+{
+	int old_bus, ret_value;
+        uchar ucBuffer[DHCOM_DISPLAY_SETTINGS_SIZE];
+
+        /* prepare i2c bus */
+        old_bus = I2C_GET_BUS();
+        I2C_SET_BUS(DISPLAY_ADAPTER_EEPROM_I2C_BUS);
+	i2c_init(CONFIG_SYS_OMAP24_I2C_SPEED, CONFIG_SYS_OMAP24_I2C_SLAVE);
+	
+	/* read display settings */
+	ret_value = i2c_read(DISPLAY_ADAPTER_EEPROM_ADDR, 0, 1, &ucBuffer[0], DHCOM_DISPLAY_SETTINGS_SIZE);
+	if((ret_value == 0) && (ucBuffer[2] == 'D') && (ucBuffer[3] == 'H')) {
+		dh_settings->cDisplayID = ucBuffer[1];
+
+		dh_settings->wYResolution = (ucBuffer[5] << 8) | ucBuffer[4];
+		dh_settings->wXResolution = (ucBuffer[7] << 8) | ucBuffer[6];
+
+		dh_settings->wLCDConfigFlags = (ucBuffer[9] << 8) | ucBuffer[8];
+		dh_settings->wPixelClock = (ucBuffer[11] << 8) | ucBuffer[10];
+
+		dh_settings->wVPulseWidth = (ucBuffer[13] << 8) | ucBuffer[12];
+		dh_settings->wHPulseWidth = (ucBuffer[15] << 8) | ucBuffer[14];
+
+		dh_settings->wHBackPorch = (ucBuffer[17] << 8) | ucBuffer[16];
+		dh_settings->wHFrontPorch = (ucBuffer[19] << 8) | ucBuffer[18];
+
+		dh_settings->wVBackPorch = (ucBuffer[21] << 8) | ucBuffer[20];
+		dh_settings->wVFrontPorch = (ucBuffer[23] << 8) | ucBuffer[22];
+
+		dh_settings->cACBiasTrans = ucBuffer[24];
+		dh_settings->cACBiasFreq = ucBuffer[25];
+		dh_settings->cDatalines = (ucBuffer[27] << 8) | ucBuffer[26];
+	}
+
+	/* Set i2c bus back */	
+	I2C_SET_BUS(old_bus);
+}
+
+void load_dh_settings_file(void)
+{
+	ulong addr;
+	char *command;
+
+        set_dhcom_defaultsettings(&gd->dh_board_settings);
+        
+	addr = simple_strtoul(getenv ("loadaddr"), NULL, 16);
+	printf("Load DH settings...\n");
+
+	// Disable console output
+	gd->flags |= GD_FLG_DISABLE_CONSOLE;
+
+	/* Load DH settings file from Filesystem */
+	if ((command = getenv ("load_settings_bin")) == NULL) {
+		// Enable console output	
+		gd->flags &= (~GD_FLG_DISABLE_CONSOLE);	
+		printf ("Error: \"load_settings_bin\" not defined\n");
+	} else if (run_command (command, 0) != 0) {
+		// Enable console output	
+		gd->flags &= (~GD_FLG_DISABLE_CONSOLE);	
+		printf ("Warning: Can't load DH settings file\n");		
+	} else {
+	        // Enable console output	
+	        gd->flags &= (~GD_FLG_DISABLE_CONSOLE);	
+
+	        /* copy settingsblock from dram into the dh_board_settings structure */
+	        gd->dh_board_settings.wValidationID = ((readl(addr) & 0xFFFF0000) >> 16);
+
+	        // settings.bin file Valid Mask should be "DH" = 0x4844
+	        if(gd->dh_board_settings.wValidationID == 0x4844) {
+		        gd->dh_board_settings.cLength = (readl(addr) & 0xFF);
+		        gd->dh_board_settings.cDisplayID = ((readl(addr) & 0xFF00) >> 8);
+
+		        gd->dh_board_settings.wYResolution = (readl(addr+4) & 0xFFFF);
+		        gd->dh_board_settings.wXResolution = ((readl(addr+4) & 0xFFFF0000) >> 16);
+
+		        gd->dh_board_settings.wLCDConfigFlags = (readl(addr+8) & 0xFFFF);
+		        gd->dh_board_settings.wPixelClock = ((readl(addr+8) & 0xFFFF0000) >> 16);
+
+		        gd->dh_board_settings.wVPulseWidth = (readl(addr+12) & 0xFFFF);
+		        gd->dh_board_settings.wHPulseWidth = ((readl(addr+12) & 0xFFFF0000) >> 16);
+
+		        gd->dh_board_settings.wHBackPorch = (readl(addr+16) & 0xFFFF);
+		        gd->dh_board_settings.wHFrontPorch = ((readl(addr+16) & 0xFFFF0000) >> 16);
+
+		        gd->dh_board_settings.wVBackPorch = (readl(addr+20) & 0xFFFF);
+		        gd->dh_board_settings.wVFrontPorch = ((readl(addr+20) & 0xFFFF0000) >> 16);
+
+		        gd->dh_board_settings.cACBiasTrans = (readl(addr+24) & 0xFF);
+		        gd->dh_board_settings.cACBiasFreq = ((readl(addr+24) & 0xFF00) >> 8);
+		        gd->dh_board_settings.cDatalines = ((readl(addr+24) & 0xFFFF0000) >> 16);
+
+		        gd->dh_board_settings.wGPIODir = (readl(addr+32));
+		        gd->dh_board_settings.wGPIOState = (readl(addr+36));
+
+		        gd->dh_board_settings.wHWConfigFlags = (readl(addr+40) & 0xFFFF);
+	        }	
+	        else {
+		        gd->dh_board_settings.wValidationID = 0;
+	        }
+	}
+	/* Check and Read Display data from EEPROM if enabled */
+	if((gd->dh_board_settings.wHWConfigFlags & SETTINGS_HW_EN_DISP_ADPT_EE_CHK) != 0) 
+		set_dhcom_da_eeprom_settings(&gd->dh_board_settings);
+			
+}
+
+int dhcom_init(void)
+{
+        load_dh_settings_file();
+        return 0;
+}
+
 #ifdef CONFIG_USE_FDT
   #define FDTPROP(a, b, c) fdt_getprop_u32_default((void *)a, b, c, ~0UL)
   #define PATHTIM "/panel/display-timings/default"
@@ -496,40 +639,6 @@ int load_lcdtiming(struct am335x_lcdpanel *panel)
 	return 0;
 }
 
-#ifdef CONFIG_USE_FDT_DO_NOT
-static int load_devicetree(void)
-{
-	char *dtbname = getenv("dtb");
-	char *dtbdev = getenv("dtbdev");
-	char *dtppart = getenv("dtbpart");
-	u32 dtbaddr = getenv_ulong("dtbaddr", 16, ~0UL);
-	loff_t dtbsize;
-
-	if (!dtbdev || !dtbdev) {
-		puts("load_devicetree: <dtbdev>/<dtbpart> missing.\n");
-		return -1;
-	}
-
-	if (fs_set_blk_dev(dtbdev, dtppart, FS_TYPE_EXT)) {
-		puts("load_devicetree: set_blk_dev failed.\n");
-		return -1;
-	}
-	if (dtbname && dtbaddr != ~0UL) {
-		if (fs_read(dtbname, dtbaddr, 0, 0, &dtbsize) == 0) {
-			gd->fdt_blob = (void *)dtbaddr;
-			gd->fdt_size = dtbsize;
-			debug("loaded %d bytes of dtb onto 0x%08x\n",
-			      (u32)dtbsize, dtbaddr);
-			return dtbsize;
-		}
-		puts("load_devicetree: load dtb failed,file does not exist!\n");
-	}
-
-	puts("load_devicetree: <dtb>/<dtbaddr> missing!\n");
-	return -1;
-}
-#endif
-
 void lcdpower(int on)
 {
 	u32 pin, swval, i;
@@ -581,6 +690,7 @@ void lcd_ctrl_init(void *lcdbase)
 	/* TODO: is there a better place to load the dtb ? */
 	load_devicetree();
 #endif
+printf("Load LCD timings...\n");
         
 	memset(&lcd_panel, 0, sizeof(struct am335x_lcdpanel));
 	if (load_lcdtiming(&lcd_panel) != 0)
