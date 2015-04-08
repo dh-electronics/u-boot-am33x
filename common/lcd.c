@@ -632,6 +632,13 @@ int lcd_display_bitmap(ulong bmp_image, int x, int y)
 
 		return 1;
 	}
+	
+	if ((panel_info.vl_col < width) || (panel_info.vl_row < height)) {
+                printf ("Error: BMP resolution is to high. Use %dx%d or smaller!\n",
+                        panel_info.vl_col, panel_info.vl_row);
+                        
+                return 1;
+        }
 
 	/*
 	 * We support displaying 8bpp BMPs on 16bpp LCDs
