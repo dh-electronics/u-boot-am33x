@@ -37,8 +37,6 @@
 
 DECLARE_GLOBAL_DATA_PTR;
 
-void load_dh_settings_file(void);
-
 static struct ctrl_dev *cdev = (struct ctrl_dev *)CTRL_DEVICE_BASE;
 
 #ifndef CONFIG_SKIP_LOWLEVEL_INIT
@@ -241,10 +239,6 @@ int board_init(void)
 #ifdef CONFIG_BOARD_LATE_INIT
 int board_late_init(void)
 {
-	//set_dhcom_gpios();
-	//set_dhcom_backlight_gpio();
-	//burn_fuses();
-	//init_MAC_address();
 	return 0;
 }
 #endif
@@ -383,6 +377,40 @@ int board_eth_init(bd_t *bis)
 }
 #endif
 
+#ifdef CONFIG_SPLASH_SCREEN
+static int board_get_splashimage(void)
+{
+        char *s;
+        char *command;
+
+        s = getenv("splashimage");
+	if (s) { /* only load splash image if we have env var 'splashimage' */
+
+                /* disable console output */
+                gd->flags |= GD_FLG_DISABLE_CONSOLE;
+
+                /* load splash image bmp file from a file system */
+                command = getenv ("load_splash");
+	        if (command == NULL) {
+                        /* enable console output */
+                        gd->flags &= (~GD_FLG_DISABLE_CONSOLE);
+                        printf ("splashimage: \"load_splash\" not defined\n");
+                        return -ENOENT;
+                }
+                else if (run_command (command, 0) != 0) {
+                        /* enable console output */
+                        gd->flags &= (~GD_FLG_DISABLE_CONSOLE);
+                        printf ("Warning: Can't load splash bitmap\n");
+                        return -EIO;
+                }
+
+	        /* enable console output */
+	        gd->flags &= (~GD_FLG_DISABLE_CONSOLE);
+	}
+	return 0;
+}
+#endif
+
 void set_dhcom_defaultsettings(volatile settingsinfo_t* dh_settings)
 {
 	/* initialize DH Global Data */
@@ -421,7 +449,7 @@ void set_dhcom_da_eeprom_settings(volatile settingsinfo_t* dh_settings)
 	ret_value = i2c_read(DISPLAY_ADAPTER_EEPROM_ADDR, 0, 1, &ucBuffer[0], DHCOM_DISPLAY_SETTINGS_SIZE);
 	if((ret_value == 0) && (ucBuffer[2] == 'D') && (ucBuffer[3] == 'H')) {
 		dh_settings->cDisplayID = ucBuffer[1];
-
+                dh_settings->wValidationID = 0x4144; /* set 'DA' for display adapter*/
 		dh_settings->wYResolution = (ucBuffer[5] << 8) | ucBuffer[4];
 		dh_settings->wXResolution = (ucBuffer[7] << 8) | ucBuffer[6];
 
@@ -454,24 +482,23 @@ void load_dh_settings_file(void)
         set_dhcom_defaultsettings(&gd->dh_board_settings);
         
 	addr = simple_strtoul(getenv ("loadaddr"), NULL, 16);
-	printf("Load DH settings...\n");
+	printf("loading dhcom settings...\n");
 
 	// Disable console output
 	gd->flags |= GD_FLG_DISABLE_CONSOLE;
 
 	/* Load DH settings file from Filesystem */
 	if ((command = getenv ("load_settings_bin")) == NULL) {
-		// Enable console output	
+		/* Error: no environment variable 'load_settings_bin' */
 		gd->flags &= (~GD_FLG_DISABLE_CONSOLE);	
-		printf ("Error: \"load_settings_bin\" not defined\n");
-	} else if (run_command (command, 0) != 0) {
-		// Enable console output	
+		printf ("Warning: \"load_settings_bin\" not defined\n");
+	}
+	else if (run_command (command, 0) != 0) {
+		/* Error while executing 'load_settings_bin' */
 		gd->flags &= (~GD_FLG_DISABLE_CONSOLE);	
-		printf ("Warning: Can't load DH settings file\n");		
-	} else {
-	        // Enable console output	
-	        gd->flags &= (~GD_FLG_DISABLE_CONSOLE);	
-
+		printf ("Warning: Can't load dhcom settings file\n");		
+	}
+	else {
 	        /* copy settingsblock from dram into the dh_board_settings structure */
 	        gd->dh_board_settings.wValidationID = ((readl(addr) & 0xFFFF0000) >> 16);
 
@@ -508,130 +535,82 @@ void load_dh_settings_file(void)
 		        gd->dh_board_settings.wValidationID = 0;
 	        }
 	}
+
+	/* Enable console output */
+	gd->flags &= (~GD_FLG_DISABLE_CONSOLE);	
+
 	/* Check and Read Display data from EEPROM if enabled */
-	if((gd->dh_board_settings.wHWConfigFlags & SETTINGS_HW_EN_DISP_ADPT_EE_CHK) != 0) 
+	if((gd->dh_board_settings.wHWConfigFlags & SETTINGS_HW_EN_DISP_ADPT_EE_CHK) != 0) {
 		set_dhcom_da_eeprom_settings(&gd->dh_board_settings);
+	}
 			
 }
 
+/*
+ * init hook which is called immediatly before lcd setup
+ * and after nand/mmc setup
+ */
 int dhcom_init(void)
 {
         load_dh_settings_file();
+#ifdef CONFIG_SPLASH_SCREEN
+        board_get_splashimage();
+#endif
+	//set_dhcom_gpios();
+	//set_dhcom_backlight_gpio();
+	//burn_fuses();
         return 0;
 }
 
-#ifdef CONFIG_USE_FDT
-  #define FDTPROP(a, b, c) fdt_getprop_u32_default((void *)a, b, c, ~0UL)
-  #define PATHTIM "/panel/display-timings/default"
-  #define PATHINF "/panel/panel-info"
-#endif
-/* --------------------------------------------------------------------------*/
 #if defined(CONFIG_LCD) && defined(CONFIG_AM335X_LCD) && \
 	!defined(CONFIG_SPL_BUILD)
-int load_lcdtiming(struct am335x_lcdpanel *panel)
+int load_lcdtiming(struct am335x_lcdpanel *panel, volatile settingsinfo_t *dh_settings)
 {
 	struct am335x_lcdpanel pnltmp;
-#ifdef CONFIG_USE_FDT_DO_NOT
-	u32 dtbaddr = getenv_ulong("dtbaddr", 16, ~0UL);
-	u32 dtbprop;
 
-	if (dtbaddr == ~0UL) {
-		puts("load_lcdtiming: failed to get 'dtbaddr' from env!\n");
-		return -1;
-	}
-	memcpy(&pnltmp, (void *)panel, sizeof(struct am335x_lcdpanel));
+	pnltmp.hactive = dh_settings->wXResolution;
+	pnltmp.vactive = dh_settings->wYResolution;
+	pnltmp.bpp = 32; /* Always setup 32 bpp framebuffer */
+	pnltmp.hfp = dh_settings->wHFrontPorch;
+	pnltmp.hbp = dh_settings->wHBackPorch;
+	pnltmp.hsw = dh_settings->wHPulseWidth;
+	pnltmp.vfp = dh_settings->wVFrontPorch;
+	pnltmp.vbp = dh_settings->wVBackPorch;
+	pnltmp.vsw = dh_settings->wVPulseWidth;
+	pnltmp.pxl_clk_div = 192000 / dh_settings->wPixelClock;
 
-	pnltmp.hactive = FDTPROP(dtbaddr, PATHTIM, "hactive");
-	pnltmp.vactive = FDTPROP(dtbaddr, PATHTIM, "vactive");
-	pnltmp.bpp = FDTPROP(dtbaddr, PATHINF, "bpp");
-	pnltmp.hfp = FDTPROP(dtbaddr, PATHTIM, "hfront-porch");
-	pnltmp.hbp = FDTPROP(dtbaddr, PATHTIM, "hback-porch");
-	pnltmp.hsw = FDTPROP(dtbaddr, PATHTIM, "hsync-len");
-	pnltmp.vfp = FDTPROP(dtbaddr, PATHTIM, "vfront-porch");
-	pnltmp.vbp = FDTPROP(dtbaddr, PATHTIM, "vback-porch");
-	pnltmp.vsw = FDTPROP(dtbaddr, PATHTIM, "vsync-len");
-	pnltmp.pup_delay = FDTPROP(dtbaddr, PATHTIM, "pupdelay");
-	pnltmp.pon_delay = FDTPROP(dtbaddr, PATHTIM, "pondelay");
+	/* setup pol flags */
+        pnltmp.pol = 0;
 
-	/* calc. proper clk-divisor */
-	dtbprop = FDTPROP(dtbaddr, PATHTIM, "clock-frequency");
-	if (dtbprop != ~0UL)
-		pnltmp.pxl_clk_div = 192000000 / dtbprop;
-	else
-		pnltmp.pxl_clk_div = ~0UL;
+        if(dh_settings->wLCDConfigFlags & SETTINGS_LCD_IVS_FLAG) {
+                pnltmp.pol |= VSYNC_INVERT;
+        }
 
-	/* check polarity of control-signals */
-	dtbprop = FDTPROP(dtbaddr, PATHTIM, "hsync-active");
-	if (dtbprop == 0)
-		pnltmp.pol |= HSYNC_INVERT;
-	dtbprop = FDTPROP(dtbaddr, PATHTIM, "vsync-active");
-	if (dtbprop == 0)
-		pnltmp.pol |= VSYNC_INVERT;
-	dtbprop = FDTPROP(dtbaddr, PATHINF, "sync-ctrl");
-	if (dtbprop == 1)
-		pnltmp.pol |= HSVS_CONTROL;
-	dtbprop = FDTPROP(dtbaddr, PATHINF, "sync-edge");
-	if (dtbprop == 1)
-		pnltmp.pol |= HSVS_RISEFALL;
-	dtbprop = FDTPROP(dtbaddr, PATHTIM, "pixelclk-active");
-	if (dtbprop == 0)
-		pnltmp.pol |= PXCLK_INVERT;
-	dtbprop = FDTPROP(dtbaddr, PATHTIM, "de-active");
-	if (dtbprop == 0)
-		pnltmp.pol |= DE_INVERT;
-#else
-	pnltmp.hactive = 800;
-	pnltmp.vactive = 480;
-	pnltmp.bpp = 32;
-	pnltmp.hfp = 42;
-	pnltmp.hbp = 86;
-	pnltmp.hsw = 128;
-	pnltmp.vfp = 10;
-	pnltmp.vbp = 33;
-	pnltmp.vsw = 2;
-	pnltmp.pxl_clk_div = 192000000 / 33260000;
-	pnltmp.pol = HSYNC_INVERT | VSYNC_INVERT | PXCLK_INVERT /* | DE_INVERT */;
+        if(dh_settings->wLCDConfigFlags & SETTINGS_LCD_IHS_FLAG) {
+                pnltmp.pol |= HSYNC_INVERT;
+        }
+
+        if(!(dh_settings->wLCDConfigFlags & SETTINGS_LCD_IPC_FLAG)) {
+                pnltmp.pol |= PXCLK_INVERT;
+        }
+
+        if(dh_settings->wLCDConfigFlags & SETTINGS_LCD_IOE_FLAG) {
+                pnltmp.pol |= DE_INVERT;
+        }
+
+        if(dh_settings->wLCDConfigFlags & SETTINGS_LCD_IDATA_FLAG) {
+                printf("LCD: inverted data is not supported!\n");
+        }
+
+        if(!(dh_settings->wLCDConfigFlags & SETTINGS_LCD_ACT_PAS_FLAG)) {
+                printf("LCD: passive matrix displays are not supported!\n");
+        }
+
 	pnltmp.pup_delay = 0; 
 	pnltmp.pon_delay = 0;
-#endif
-	if (
-	   ~0UL == (pnltmp.hactive) ||
-	   ~0UL == (pnltmp.vactive) ||
-	   ~0UL == (pnltmp.bpp) ||
-	   ~0UL == (pnltmp.hfp) ||
-	   ~0UL == (pnltmp.hbp) ||
-	   ~0UL == (pnltmp.hsw) ||
-	   ~0UL == (pnltmp.vfp) ||
-	   ~0UL == (pnltmp.vbp) ||
-	   ~0UL == (pnltmp.vsw) ||
-	   ~0UL == (pnltmp.pxl_clk_div) ||
-	   ~0UL == (pnltmp.pol) ||
-	   ~0UL == (pnltmp.pup_delay) ||
-	   ~0UL == (pnltmp.pon_delay)
-	   ) {
-		puts("lcd-settings in env/dtb incomplete!\n");
-		printf("display-timings:\n"
-			"================\n"
-			"hactive: %d\n"
-			"vactive: %d\n"
-			"bpp    : %d\n"
-			"hfp    : %d\n"
-			"hbp    : %d\n"
-			"hsw    : %d\n"
-			"vfp    : %d\n"
-			"vbp    : %d\n"
-			"vsw    : %d\n"
-			"pxlclk : %d\n"
-			"pol    : 0x%08x\n"
-			"pondly : %d\n",
-			pnltmp.hactive, pnltmp.vactive, pnltmp.bpp,
-			pnltmp.hfp, pnltmp.hbp, pnltmp.hsw,
-			pnltmp.vfp, pnltmp.vbp, pnltmp.vsw,
-			pnltmp.pxl_clk_div, pnltmp.pol, pnltmp.pon_delay);
 
-		return -1;
-	}
-	debug("lcd-settings in env complete, taking over.\n");
+	/* TODO: setup datalines dh_settings->cDatalines */
+
 	memcpy((void *)panel,
 	       (void *)&pnltmp,
 	       sizeof(struct am335x_lcdpanel));
@@ -686,14 +665,9 @@ vidinfo_t	panel_info = {
 void lcd_ctrl_init(void *lcdbase)
 {
 	struct am335x_lcdpanel lcd_panel;
-#ifdef CONFIG_USE_FDT_DO_NOT
-	/* TODO: is there a better place to load the dtb ? */
-	load_devicetree();
-#endif
-printf("Load LCD timings...\n");
         
 	memset(&lcd_panel, 0, sizeof(struct am335x_lcdpanel));
-	if (load_lcdtiming(&lcd_panel) != 0)
+	if (load_lcdtiming(&lcd_panel, &gd->dh_board_settings) != 0)
 		return;
 		
 	lcd_panel.panel_power_ctrl = &lcdpower;
