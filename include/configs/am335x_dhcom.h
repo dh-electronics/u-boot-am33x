@@ -118,7 +118,7 @@
 	"settings_bin_file=default_settings.bin\0" \
 	"splash_file=splash.bmp\0" \
 	"load_settings_bin=load mmc ${mmcdev}:${mmcpart} ${loadaddr} ${settings_bin_file}\0" \
-	"load_splash=load mmc ${mmcdev}:${mmcpart} ${loadaddr} ${splash_file}\0" \
+	"load_splash=load mmc ${mmcdev}:${mmcpart} ${splashimage} ${splash_file}\0" \
 	"load_update_kernel=dummy\0" \
         "mmcdev=" __stringify(CONFIG_SYS_DEFAULT_MMC_DEV) "\0" \
         "mmcpart=1\0" \
@@ -469,15 +469,6 @@
 					"512k(u-boot),128k(u-boot-env1)," \
 					"128k(u-boot-env2),3464k(kernel)," \
 					"-(rootfs)"
-#elif defined(CONFIG_EMMC_BOOT)
-#undef CONFIG_ENV_IS_NOWHERE
-#define CONFIG_ENV_IS_IN_MMC
-#define CONFIG_SPL_ENV_SUPPORT
-#define CONFIG_SYS_MMC_ENV_DEV		1
-#define CONFIG_SYS_MMC_ENV_PART		2
-#define CONFIG_ENV_OFFSET		0x0
-#define CONFIG_ENV_OFFSET_REDUND	(CONFIG_ENV_OFFSET + CONFIG_ENV_SIZE)
-#define CONFIG_SYS_REDUNDAND_ENVIRONMENT
 #endif
 
 /* SPI flash. */
