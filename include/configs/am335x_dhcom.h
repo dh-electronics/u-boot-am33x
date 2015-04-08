@@ -55,6 +55,8 @@
 #define CONFIG_CMD_GPT
 #define CONFIG_EFI_PARTITION
 
+#define CONFIG_SYS_DEFAULT_MMC_DEV 0
+
 #ifdef CONFIG_NAND
 #define NANDARGS \
 	"mtdids=" MTDIDS_DEFAULT "\0" \
@@ -89,7 +91,6 @@
 		"uuid_disk=${uuid_gpt_disk};" \
 		"name=rootfs,start=2MiB,size=-,uuid=${uuid_gpt_rootfs}\0" \
 	"optargs=\0" \
-	"mmcdev=0\0" \
 	"mmcroot=/dev/mmcblk0p2 ro\0" \
 	"mmcrootfstype=ext4 rootwait\0" \
 	"rootpath=/export/rootfs\0" \
@@ -111,6 +112,16 @@
 		"${optargs} " \
 		"root=${spiroot} " \
 		"rootfstype=${spirootfstype}\0" \
+	"panel=no_panel\0" \
+	"splashimage=0x80000002\0" \
+	"splashpos=m,m\0" \
+	"settings_bin_file=default_settings.bin\0" \
+	"splash_file=splash.bmp\0" \
+	"load_settings_bin=load mmc ${mmcdev}:${mmcpart} ${loadaddr} ${settings_bin_file}\0" \
+	"load_splash=load mmc ${mmcdev}:${mmcpart} ${loadaddr} ${splash_file}\0" \
+	"load_update_kernel=dummy\0" \
+        "mmcdev=" __stringify(CONFIG_SYS_DEFAULT_MMC_DEV) "\0" \
+        "mmcpart=1\0" \
 	"netargs=setenv bootargs console=${console} " \
 		"${optargs} " \
 		"root=/dev/nfs " \
@@ -205,6 +216,16 @@
 #define CONFIG_SYS_NS16550_COM1		0x44e09000	/* Base EVM has UART0 */
 #define CONFIG_SYS_NS16550_COM2		0x48022000	/* UART1 */
 #define CONFIG_BAUDRATE			115200
+
+/* I2C */
+#define CONFIG_SYS_I2C
+#define CONFIG_SYS_OMAP24_I2C_SPEED	100000
+#define CONFIG_SYS_OMAP24_I2C_SLAVE	1
+#define CONFIG_SYS_I2C_OMAP24XX
+
+#define DISPLAY_ADAPTER_EEPROM_I2C_BUS  2
+
+#define CONFIG_CMD_I2C
 
 /* RTC */
 #define CONFIG_CMD_DATE
@@ -337,7 +358,7 @@
 
 /* To support eMMC booting */
 #define CONFIG_STORAGE_EMMC
-#define CONFIG_FASTBOOT_FLASH_MMC_DEV   1
+#define CONFIG_FASTBOOT_FLASH_MMC_DEV   CONFIG_SYS_DEFAULT_MMC_DEV
 #endif
 
 #ifdef CONFIG_MUSB_HOST

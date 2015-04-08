@@ -504,6 +504,14 @@ int board_late_init (void);
 int board_postclk_init (void); /* after clocks/timebase, before env/serial */
 int board_early_init_r (void);
 void board_poweroff (void);
+#if defined(CONFIG_DHCOM)
+/*
+ * Initialization hook which is called before 'stdio_add_devices()' in /common/board_r.c
+ * 'stdio_add_devices()' triggers the rgb-lcd initialization. 
+ * -> so this hook is a good place to load the dhcom settings and do the hw setup.
+ */
+int dhcom_init(void);
+#endif
 
 #if defined(CONFIG_SYS_DRAM_TEST)
 int testdram(void);

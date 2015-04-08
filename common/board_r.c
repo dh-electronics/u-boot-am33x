@@ -862,6 +862,9 @@ init_fnc_t init_sequence_r[] = {
 	 */
 	initr_pci,
 #endif
+#ifdef CONFIG_DHCOM
+        dhcom_init,
+#endif
 	stdio_add_devices,
 	initr_jumptable,
 #ifdef CONFIG_API
