@@ -242,6 +242,11 @@ static struct module_pin_mux usbhost_pin_mux[] = { /* usb1 is used for DHCOM USB
 	{-1},
 };
 
+static struct module_pin_mux pwm_pin_mux[] = { /* pwm - common used for display backlight brightness */
+	{OFFSET(mcasp0_aclkx), (MODE(7) | PULLUDDIS)},	/* GPIO_PWM - GPIO 3_14*/
+	{-1},
+};
+
 void enable_uart0_pin_mux(void)
 {
 	configure_module_pin_mux(uart0_pin_mux);
@@ -307,6 +312,8 @@ void enable_board_pin_mux()
 
         /* Parallel RGB LCD interface */
         configure_module_pin_mux(parallel_lcd_pin_mux);
+        /* PWM */
+        configure_module_pin_mux(pwm_pin_mux);
 
         /* USB Host 1 (additional pins) */
         configure_module_pin_mux(usbhost_pin_mux);

@@ -46,8 +46,8 @@ typedef struct settingsinfo {
     u16     wYResolution;       // Display y resolution
     u16     wXResolution;       // Display x resolution
     
-    u16     wLCDConfigFlags;    // Display configuration flags
-    u16     wPixelClock;        // Display pixel clock
+    u32     wLCDConfigFlags;    // Display configuration flags
+    u32     wPixelClock;        // Display pixel clock
 
     u16     wVPulseWidth;       // VSYNC pulse width
     u16     wHPulseWidth;       // HSYNC pulse width
