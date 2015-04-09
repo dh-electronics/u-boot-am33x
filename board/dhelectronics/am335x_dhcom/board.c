@@ -34,10 +34,33 @@
 #include <lcd.h>
 #include "board.h"
 #include "../../../drivers/video/am335x-fb.h"
+#include "pwm-tiehrpwm.h"
 
 DECLARE_GLOBAL_DATA_PTR;
 
 static struct ctrl_dev *cdev = (struct ctrl_dev *)CTRL_DEVICE_BASE;
+
+unsigned DHCOM_gpios[] = {
+	DHCOM_GPIO_A,
+	DHCOM_GPIO_B,
+	DHCOM_GPIO_C,
+	DHCOM_GPIO_D,
+	DHCOM_GPIO_E,
+	DHCOM_GPIO_F,
+	DHCOM_GPIO_G,
+	DHCOM_GPIO_H,
+	DHCOM_GPIO_I,
+	DHCOM_GPIO_J,
+	DHCOM_GPIO_K,
+	DHCOM_GPIO_L,
+	DHCOM_GPIO_M,
+	DHCOM_GPIO_N,
+	DHCOM_GPIO_O,
+	DHCOM_GPIO_P,
+	DHCOM_GPIO_Q,
+};
+
+#define PWM_BACKLIGHT_GP (32*3+14)
 
 #ifndef CONFIG_SKIP_LOWLEVEL_INIT
 static const struct ddr_data ddr3_dhcom_2gb_data = {
@@ -103,7 +126,7 @@ void am33xx_spl_board_init(void)
 	 */
 	u32 *const clk_domains[] = { 0 };
 
-	u32 *const clk_modules_kwbspecific[] = {
+	u32 *const clk_modules_dhcomspecific[] = {
 		&cmper->epwmss0clkctrl,
 		&cmper->epwmss1clkctrl,
 		&cmper->epwmss2clkctrl,
@@ -111,7 +134,7 @@ void am33xx_spl_board_init(void)
 		&cmper->lcdcclkstctrl,
 		0
 	};
-	do_enable_clocks(clk_domains, clk_modules_kwbspecific, 1);
+	do_enable_clocks(clk_domains, clk_modules_dhcomspecific, 1);
 	/* setup LCD-Pixel Clock */
 	writel(0x2, CM_DPLL + 0x34);
 	
@@ -377,7 +400,7 @@ int board_eth_init(bd_t *bis)
 }
 #endif
 
-#ifdef CONFIG_SPLASH_SCREEN
+#if defined(CONFIG_SPLASH_SCREEN) && !defined(CONFIG_SPL_BUILD)
 static int board_get_splashimage(void)
 {
         char *s;
@@ -546,6 +569,68 @@ void load_dh_settings_file(void)
 			
 }
 
+void set_dhcom_gpios(void)
+{
+	int i;
+	unsigned int mask = 0x1;
+	char labeltext[7] = {"GPIO_A\0"};
+
+	for(i = 0; i < 17; i++) {
+	        gpio_request(DHCOM_gpios[i], labeltext);
+	        labeltext[5]++;
+		if(gd->dh_board_settings.wGPIODir & mask) {
+		        /* Set to input */
+			gpio_direction_input(DHCOM_gpios[i]);		
+		} else {
+		        /* Set to output */
+			if(gd->dh_board_settings.wGPIOState & mask)
+				gpio_direction_output(DHCOM_gpios[i] , 1);
+			else
+				gpio_direction_output(DHCOM_gpios[i] , 0);
+		}
+		mask = mask << 1;
+	}
+}
+
+void set_dhcom_backlight_gpio(void)
+{
+	int backlight_gpio;
+	int backlight_en_pol;
+	int backlight_pwm_pol;
+	char labeltext[19] = {"GPIO_PWM_BACKLIGHT\0"};
+
+	// Mask Backlight enable GPIO
+	backlight_gpio = ((gd->dh_board_settings.wLCDConfigFlags & SETTINGS_LCD_BL_EN_GPIO_FLAG) >> 7);
+
+	// Check if backlight enable ist specified
+	if(backlight_gpio != 0) {
+		// Covert to struct gpio index
+		backlight_gpio = backlight_gpio - 1;
+
+		// Mask Backlight pol flag: 0 = active high; 1 = active low
+		backlight_en_pol = (gd->dh_board_settings.wLCDConfigFlags & SETTINGS_LCD_IBL_FLAG);
+
+		// Mask Backlight PWM pol flag: 0 = active high; 1 = active low
+		backlight_pwm_pol = (gd->dh_board_settings.wLCDConfigFlags & SETTINGS_LCD_PWM_POL_FLAG);
+
+		// Enable backlight - gpio alread requested on DHCOM GPIO setup
+		if(backlight_en_pol == 0) {
+			gpio_direction_output(DHCOM_gpios[backlight_gpio] , 1);
+		} else {
+			gpio_direction_output(DHCOM_gpios[backlight_gpio] , 0);
+		}
+#ifdef PWM_BACKLIGHT_GP
+		// Disable backlight PWM pin till linux is running
+		gpio_request(PWM_BACKLIGHT_GP, labeltext);
+		if(backlight_pwm_pol == 0) {
+			gpio_direction_output(PWM_BACKLIGHT_GP, 1);
+		} else {
+			gpio_direction_output(PWM_BACKLIGHT_GP, 0);
+		}
+#endif	
+	}
+}
+
 /*
  * init hook which is called immediatly before lcd setup
  * and after nand/mmc setup
@@ -553,12 +638,7 @@ void load_dh_settings_file(void)
 int dhcom_init(void)
 {
         load_dh_settings_file();
-#ifdef CONFIG_SPLASH_SCREEN
-        board_get_splashimage();
-#endif
-	//set_dhcom_gpios();
-	//set_dhcom_backlight_gpio();
-	//burn_fuses();
+	set_dhcom_gpios();
         return 0;
 }
 
@@ -620,36 +700,7 @@ int load_lcdtiming(struct am335x_lcdpanel *panel, volatile settingsinfo_t *dh_se
 
 void lcdpower(int on)
 {
-	u32 pin, swval, i;
-#ifdef CONFIG_USE_FDT_DO_NOT
-	u32 dtbaddr = getenv_ulong("dtbaddr", 16, ~0UL);
-
-	if (dtbaddr == ~0UL) {
-		puts("lcdpower: failed to get 'dtbaddr' from env!\n");
-		return;
-	}
-	pin = FDTPROP(dtbaddr, PATHINF, "pwrpin");
-#else
-	pin = getenv_ulong("ds1_pwr", 16, ~0UL);
-#endif
-	if (pin == ~0UL) {
-		/* puts("no pwrpin in dtb/env, cannot powerup display!\n"); */
-		pin = 111;
-		return;
-	}
-
-	for (i = 0; i < 3; i++) {
-		if (pin != 0) {
-			swval = pin & 0x80 ? 0 : 1;
-			if (on)
-				gpio_direction_output(pin & 0x7F, swval);
-			else
-				gpio_direction_output(pin & 0x7F, !swval);
-
-			debug("switched pin %d to %d\n", pin & 0x7F, swval);
-		}
-		pin >>= 8;
-	}
+        /* dummy */
 }
 
 vidinfo_t	panel_info = {
@@ -665,11 +716,14 @@ vidinfo_t	panel_info = {
 void lcd_ctrl_init(void *lcdbase)
 {
 	struct am335x_lcdpanel lcd_panel;
-        
+
+#ifdef CONFIG_SPLASH_SCREEN
+        board_get_splashimage();
+#endif
 	memset(&lcd_panel, 0, sizeof(struct am335x_lcdpanel));
 	if (load_lcdtiming(&lcd_panel, &gd->dh_board_settings) != 0)
 		return;
-		
+
 	lcd_panel.panel_power_ctrl = &lcdpower;
 
 	if (0 != am335xfb_init(&lcd_panel)) {
@@ -685,60 +739,51 @@ void lcd_ctrl_init(void *lcdbase)
 	lcd_set_flush_dcache(1);
 }
 
+#ifndef PWM_BACKLIGHT_GP
+/*
+ * TODO: this needs some work
+ */
+static int ehrpwm_pwm_enable(unsigned int bright)
+{
+	unsigned short *epwm0_base = (unsigned short*)0x48300200;
+
+        /* scale time base clk relative to sys clock */
+        *(epwm0_base + TBCTL/2) = TBCTL_CTRMODE_DOWN | 
+                                TBCTL_SYNCOSEL_ZERO | 
+                                (0x05 << 7) | (0x02 << 10) |
+                                TBCTL_PRDLD_IMDT;
+
+        /* configure counter value */
+        *(epwm0_base + TBCNT/2) = 100;
+        *(epwm0_base + TBPRD/2) = 100;
+        
+        /* compare control */
+        *(epwm0_base + CMPCTL/2) = 0;
+        *(epwm0_base + CMPA/2) = bright;
+        *(epwm0_base + CMPB/2) = 0;
+        
+	/* Action Qualifier on PWM output A */
+	*(epwm0_base + AQCTLA/2) = AQCTL_CBD_FRCLOW | AQCTL_CAD_FRCHIGH;
+        
+        /* scale time base clk relative to sys clock */
+        *(epwm0_base + TBCTL/2) = TBCTL_CTRMODE_DOWN | 
+                                TBCTL_SYNCOSEL_ZERO | 
+                                (0x05 << 7) | (0x02 << 10) |
+                                TBCTL_FREE_RUN;
+	return 0;
+}
+#endif
+
 void lcd_enable(void)
 {
-#ifdef DO_NET_EXECUTE
-#ifdef CONFIG_USE_FDT
-	u32 dtbaddr = getenv_ulong("dtbaddr", 16, ~0UL);
-
-	if (dtbaddr == ~0UL) {
-		puts("lcdpower: failed to get 'dtbaddr' from env!\n");
-		return;
-	}
-	unsigned int driver = FDTPROP(dtbaddr, PATHINF, "brightdrv");
-	unsigned int bright = FDTPROP(dtbaddr, PATHINF, "brightdef");
-	unsigned int pwmfrq = FDTPROP(dtbaddr, PATHINF, "brightfdim");
-#else
-	unsigned int driver = getenv_ulong("ds1_bright_drv", 16, 0UL);
-	unsigned int bright = getenv_ulong("ds1_bright_def", 10, 50);
-	unsigned int pwmfrq = getenv_ulong("ds1_pwmfreq", 10, ~0UL);
-#endif
-	unsigned int tmp;
-	struct gptimer *const timerhw = (struct gptimer *)DM_TIMER6_BASE;
-
+#ifndef PWM_BACKLIGHT_GP
+	unsigned int bright = getenv_ulong("bright_duty", 10, 50);
+		
 	bright = bright != ~0UL ? bright : 50;
-
-	switch (driver) {
-	case 0:	/* PMIC LED-Driver */
-		/* brightness level */
-		tps65217_reg_write(TPS65217_PROT_LEVEL_NONE,
-				   TPS65217_WLEDCTRL2, bright, 0xFF);
-		/* turn on light */
-		tps65217_reg_write(TPS65217_PROT_LEVEL_NONE,
-				   TPS65217_WLEDCTRL1, 0x0A, 0xFF);
-		break;
-	case 1: /* PWM using timer6 */
-		if (pwmfrq != ~0UL) {
-			timerhw->tiocp_cfg = TCFG_RESET;
-			udelay(10);
-			while (timerhw->tiocp_cfg & TCFG_RESET)
-				;
-			tmp = ~0UL-(V_OSCK/pwmfrq);	/* bottom value */
-			timerhw->tldr = tmp;
-			timerhw->tcrr = tmp;
-			tmp = tmp + ((V_OSCK/pwmfrq)/100) * bright;
-			timerhw->tmar = tmp;
-			timerhw->tclr = (TCLR_PT | (2 << TCLR_TRG_SHIFT) |
-					TCLR_CE | TCLR_AR | TCLR_ST);
-		} else {
-			puts("invalid pwmfrq in env/dtb! skip PWM-setup.\n");
-		}
-		break;
-	default:
-		puts("no suitable backlightdriver in env/dtb!\n");
-		break;
-	}
+	
+	ehrpwm_pwm_enable(bright);
 #endif
+	set_dhcom_backlight_gpio();
 }
 #elif CONFIG_SPL_BUILD
 #else

@@ -150,6 +150,14 @@ int drv_lcd_init(void)
 {
 	struct stdio_dev lcddev;
 	int rc;
+	char const *panel = getenv("panel");
+	const char *no_panel = "no_panel";
+
+	if(panel) {
+		if (!strcmp(panel, no_panel)) {
+			return 0; /* skip lcd init */
+		}
+	}
 
 	lcd_base = map_sysmem(gd->fb_base, 0);
 
