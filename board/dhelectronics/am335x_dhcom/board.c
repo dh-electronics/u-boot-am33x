@@ -97,6 +97,10 @@ static struct emif_regs ddr3_emif_reg_data_dhcom_2gb = {
 #ifdef CONFIG_SPL_OS_BOOT
 int spl_start_uboot(void)
 {
+#ifdef CONFIG_SPL_ENV_SUPPORT
+        char const *pwm_pol = getenv("pwm_pol");
+	const char *normal_pol = "normal";
+#endif
 	/* break into full u-boot on 'c' */
 	if (serial_tstc() && serial_getc() == 'c')
 		return 1;
@@ -104,6 +108,14 @@ int spl_start_uboot(void)
 #ifdef CONFIG_SPL_ENV_SUPPORT
 	env_init();
 	env_relocate_spec();
+	/* Switch off backlight */
+	if(pwm_pol) {
+		if (!strcmp(pwm_pol, normal_pol)) {
+			gpio_direction_output(PWM_BACKLIGHT_GP, 0);
+		} else {
+			gpio_direction_output(PWM_BACKLIGHT_GP, 1);
+		}
+	}
 	if (getenv_yesno("boot_os") != 1)
 		return 1;
 #endif
@@ -138,8 +150,9 @@ void am33xx_spl_board_init(void)
 	/* setup LCD-Pixel Clock */
 	writel(0x2, CM_DPLL + 0x34);
 	
-	/* power-OFF LCD-Display */
-	// gpio_direction_output(LCD_PWR, 0);
+	/* power-OFF LCD-Display - in inverted pwm case this disables the backlight */
+        enable_pwm_pin_mux();
+	gpio_direction_output(PWM_BACKLIGHT_GP, 1);
 
 	/* Get the frequency */
 	dpll_mpu_opp100.m = am335x_get_efuse_mpu_max_freq(cdev);
@@ -334,7 +347,6 @@ int board_eth_init(bd_t *bis)
 	int rv, n = 0;
 	uint8_t mac_addr[6];
 	uint32_t mac_hi, mac_lo;
-	__maybe_unused struct am335x_baseboard_id header;
 
 	/* try reading mac address from efuse */
 	mac_lo = readl(&cdev->macid0l);
@@ -620,12 +632,14 @@ void set_dhcom_backlight_gpio(void)
 			gpio_direction_output(DHCOM_gpios[backlight_gpio] , 0);
 		}
 #ifdef PWM_BACKLIGHT_GP
-		// Disable backlight PWM pin till linux is running
+		// Enable backlight PWM pin
 		gpio_request(PWM_BACKLIGHT_GP, labeltext);
 		if(backlight_pwm_pol == 0) {
 			gpio_direction_output(PWM_BACKLIGHT_GP, 1);
+			setenv("pwm_pol", "normal");
 		} else {
 			gpio_direction_output(PWM_BACKLIGHT_GP, 0);
+			setenv("pwm_pol", "inverted");
 		}
 #endif	
 	}
