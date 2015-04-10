@@ -20,46 +20,6 @@
 #define HDR_ETH_ALEN		6
 #define HDR_NAME_LEN		8
 
-struct am335x_baseboard_id {
-	unsigned int  magic;
-	char name[HDR_NAME_LEN];
-	char version[4];
-	char serial[12];
-	char config[32];
-	char mac_addr[HDR_NO_OF_MAC_ADDR][HDR_ETH_ALEN];
-};
-
-static inline int board_is_bone(struct am335x_baseboard_id *header)
-{
-	return !strncmp(header->name, "A335BONE", HDR_NAME_LEN);
-}
-
-static inline int board_is_bone_lt(struct am335x_baseboard_id *header)
-{
-	return !strncmp(header->name, "A335BNLT", HDR_NAME_LEN);
-}
-
-static inline int board_is_evm_sk(struct am335x_baseboard_id *header)
-{
-	return !strncmp("A335X_SK", header->name, HDR_NAME_LEN);
-}
-
-static inline int board_is_idk(struct am335x_baseboard_id *header)
-{
-	return !strncmp(header->config, "SKU#02", 6);
-}
-
-static inline int board_is_gp_evm(struct am335x_baseboard_id *header)
-{
-	return !strncmp("A33515BB", header->name, HDR_NAME_LEN);
-}
-
-static inline int board_is_evm_15_or_later(struct am335x_baseboard_id *header)
-{
-	return (board_is_gp_evm(header) &&
-		strncmp("1.5", header->version, 3) <= 0);
-}
-
 /*
  * We have three pin mux functions that must exist.  We must be able to enable
  * uart0, for initial output and i2c0 to read the main EEPROM.  We then have a
@@ -68,10 +28,7 @@ static inline int board_is_evm_15_or_later(struct am335x_baseboard_id *header)
  */
 void enable_uart0_pin_mux(void);
 void enable_uart1_pin_mux(void);
-void enable_uart2_pin_mux(void);
-void enable_uart3_pin_mux(void);
-void enable_uart4_pin_mux(void);
-void enable_uart5_pin_mux(void);
 void enable_i2c0_pin_mux(void);
+void enable_pwm_pin_mux(void);
 void enable_board_pin_mux(void);
 #endif

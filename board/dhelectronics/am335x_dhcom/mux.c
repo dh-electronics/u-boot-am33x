@@ -262,6 +262,11 @@ void enable_i2c0_pin_mux(void)
 	configure_module_pin_mux(i2c0_pin_mux);
 }
 
+void enable_pwm_pin_mux(void)
+{
+	configure_module_pin_mux(pwm_pin_mux);
+}
+
 void enable_board_pin_mux()
 {
         /* Pinmux DHCOM */
