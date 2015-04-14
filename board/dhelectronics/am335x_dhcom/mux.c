@@ -42,7 +42,7 @@ static struct module_pin_mux mmc0_pin_mux[] = { /* SD/µSD Interface on DHCOM */
 	{OFFSET(mmc0_dat0), (MODE(0) | RXACTIVE | PULLUP_EN)},	/* MMC0_DAT0 */
 	{OFFSET(mmc0_clk), (MODE(0) | RXACTIVE | PULLUP_EN)},	/* MMC0_CLK */
 	{OFFSET(mmc0_cmd), (MODE(0) | RXACTIVE | PULLUP_EN)},	/* MMC0_CMD */
-	{OFFSET(emu1), (MODE(7) | RXACTIVE | PULLUP_EN)},	/* MMC0_CD */
+	{OFFSET(emu1), (MODE(7) | RXACTIVE  | PULLUDDIS)},	/* MMC0_CD */
 	{-1},
 };
 
@@ -104,14 +104,14 @@ static struct module_pin_mux dhcom_gpio2_pin_mux[] = { /* DHCOM GPIOs - F:I (alt
 };
 
 static struct module_pin_mux rmii1_pin_mux[] = { /* default eth1 100Mbit on DHCOM */
-	{OFFSET(mii1_rxerr), MODE(1) | RXACTIVE},	/* RMII1_RXERR */
-	{OFFSET(mii1_txen), MODE(1)},			/* RMII1_TXEN */
-	{OFFSET(mii1_crs), MODE(1) | RXACTIVE},	        /* RMII1_CRS_DV */
-	{OFFSET(mii1_txd1), MODE(1)},			/* RMII1_TXD1 */
-	{OFFSET(mii1_txd0), MODE(1)},			/* RMII1_TXD0 */
-	{OFFSET(mii1_rxd1), MODE(1) | RXACTIVE},	/* RMII1_RXD1 */
-	{OFFSET(mii1_rxd0), MODE(1) | RXACTIVE},	/* RMII1_RXD0 */
-	{OFFSET(rmii1_refclk), MODE(0) | RXACTIVE},	/* RMII1_REFCLK */
+	{OFFSET(mii1_rxerr), MODE(1) | RXACTIVE | PULLUDEN | PULLUP_EN},/* RMII1_RXERR */
+	{OFFSET(mii1_txen), MODE(1) | PULLUDEN},			/* RMII1_TXEN */
+	{OFFSET(mii1_crs), MODE(1) | RXACTIVE | PULLUDEN | PULLUP_EN},	/* RMII1_CRS_DV */
+	{OFFSET(mii1_txd1), MODE(1) | PULLUDEN},			/* RMII1_TXD1 */
+	{OFFSET(mii1_txd0), MODE(1) | PULLUDEN},			/* RMII1_TXD0 */
+	{OFFSET(mii1_rxd1), MODE(1) | RXACTIVE | PULLUDEN | PULLUP_EN},	/* RMII1_RXD1 */
+	{OFFSET(mii1_rxd0), MODE(1) | RXACTIVE | PULLUDEN | PULLUP_EN},	/* RMII1_RXD0 */
+	{OFFSET(rmii1_refclk), MODE(0) | RXACTIVE | PULLUDEN | PULLUP_EN}, /* RMII1_REFCLK */
 	{OFFSET(mdio_data), MODE(0) | RXACTIVE | PULLUP_EN}, /* MDIO_DATA */
 	{OFFSET(mdio_clk), MODE(0) | PULLUP_EN},	/* MDIO_CLK */
 	{-1},
@@ -135,14 +135,14 @@ static struct module_pin_mux dhcom_gpio3_pin_mux[] = { /* DHCOM GPIOs - J:W  */
 };
 #ifndef CONFIG_NAND
 static struct module_pin_mux rmii2_pin_mux[] = { /* second eth2 100Mbit on DHCOM */
-	{OFFSET(gpmc_wpn), MODE(3) | RXACTIVE},	        /* RMII2_RXERR */
-	{OFFSET(gpmc_a0), MODE(3)},			/* RMII2_TXEN */
-	{OFFSET(gpmc_csn3), MODE(2) | RXACTIVE},	/* RMII2_CRS_DV */
-	{OFFSET(gpmc_a4), MODE(3)},			/* RMII2_TXD1 */
-	{OFFSET(gpmc_a5), MODE(3)},			/* RMII2_TXD0 */
-	{OFFSET(gpmc_a10), MODE(3) | RXACTIVE},	        /* RMII2_RXD1 */
-	{OFFSET(gpmc_a11), MODE(3) | RXACTIVE},	        /* RMII2_RXD0 */
-	{OFFSET(mii1_col), MODE(1) | RXACTIVE},	        /* RMII2_REFCLK */
+	{OFFSET(gpmc_wpn), MODE(3) | RXACTIVE | PULLUDEN | PULLUP_EN },/* RMII2_RXERR */
+	{OFFSET(gpmc_a0), MODE(3)  | PULLUDEN},			/* RMII2_TXEN */
+	{OFFSET(gpmc_csn3), MODE(2) | RXACTIVE | PULLUDEN | PULLUP_EN},/* RMII2_CRS_DV */
+	{OFFSET(gpmc_a4), MODE(3) | PULLUDEN},			/* RMII2_TXD1 */
+	{OFFSET(gpmc_a5), MODE(3) | PULLUDEN},			/* RMII2_TXD0 */
+	{OFFSET(gpmc_a10), MODE(3) | RXACTIVE | PULLUDEN | PULLUP_EN}, /* RMII2_RXD1 */
+	{OFFSET(gpmc_a11), MODE(3) | RXACTIVE | PULLUDEN | PULLUP_EN}, /* RMII2_RXD0 */
+	{OFFSET(mii1_col), MODE(1) | RXACTIVE | PULLUDEN | PULLUP_EN},/* RMII2_REFCLK */
 	{OFFSET(mdio_data), MODE(0) | RXACTIVE | PULLUP_EN}, /* MDIO_DATA */
 	{OFFSET(mdio_clk), MODE(0) | PULLUP_EN},	/* MDIO_CLK */
 	{-1},
@@ -238,7 +238,7 @@ static struct module_pin_mux parallel_lcd_pin_mux[] = { /* DHCOM LCD Interface*/
 
 static struct module_pin_mux usbhost_pin_mux[] = { /* usb1 is used for DHCOM USB Host 1 */
 	{OFFSET(usb1_drvvbus), (MODE(0) | PULLUDEN | PULLDOWN_EN)},	/* USB_PWR_EN */
-	{OFFSET(mii1_rxdv), (MODE(7) | PULLUDEN | PULLDOWN_EN)},	/* USB_HOST_OC: GPIO Port 3 Pin 4 */
+	{OFFSET(mii1_rxdv), (MODE(7) | PULLUDEN | PULLDOWN_EN | RXACTIVE)},	/* USB_HOST_OC: GPIO Port 3 Pin 4 */
 	{-1},
 };
 
