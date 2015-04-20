@@ -92,7 +92,7 @@
 		"${optargs} " \
 		"root=${mmcroot} " \
 		"rootfstype=${mmcrootfstype}\0" \
-	"splashimage=0x80000002\0" \
+	"splashimage=0x80000000\0" \
 	"splashpos=m,m\0" \
 	"settings_bin_file=default_settings.bin\0" \
 	"splash_file=splash.bmp\0" \
@@ -474,7 +474,6 @@
 #define LCD_BPP	LCD_COLOR32
 
 #define CONFIG_SPLASH_SCREEN
-#define CONFIG_SPLASHIMAGE_GUARD
 #define CONFIG_SPLASH_SCREEN_ALIGN
 
 #define CONFIG_VIDEO_BMP_GZIP
