@@ -92,7 +92,6 @@
 		"${optargs} " \
 		"root=${mmcroot} " \
 		"rootfstype=${mmcrootfstype}\0" \
-	"panel=no_panel\0" \
 	"splashimage=0x80000002\0" \
 	"splashpos=m,m\0" \
 	"settings_bin_file=default_settings.bin\0" \
