@@ -295,6 +295,8 @@ int omap3_spi_read(struct spi_slave *slave, unsigned int len, void *rxp,
 
 	writel(0, &ds->regs->channel[ds->slave.cs].tx);
 
+	unsigned int *rx = &ds->regs->channel[ds->slave.cs].rx;
+
 	for (i = 0; i < len; i++) {
 		start = get_timer(0);
 		/* Wait till RX register contains data (RXS == 1) */
@@ -312,12 +314,11 @@ int omap3_spi_read(struct spi_slave *slave, unsigned int len, void *rxp,
 			omap3_spi_set_enable(ds,OMAP3_MCSPI_CHCTRL_DIS);
 
 		/* Read the data */
-		unsigned int *rx = &ds->regs->channel[ds->slave.cs].rx;
-		if (ds->slave.wordlen > 16)
+		/*if (ds->slave.wordlen > 16)
 			((u32 *)rxp)[i] = readl(rx);
 		else if (ds->slave.wordlen > 8)
 			((u16 *)rxp)[i] = (u16)readl(rx);
-		else
+		else*/
 			((u8 *)rxp)[i] = (u8)readl(rx);
 	}
 
