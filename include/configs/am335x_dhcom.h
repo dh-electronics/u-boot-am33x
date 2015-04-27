@@ -144,8 +144,7 @@
 		"tftp ${fdtaddr} ${fdtfile}; " \
 		"run netargs; " \
 		"bootz ${loadaddr} - ${fdtaddr}\0" \
-	NANDARGS \
-	DFUARGS
+	NANDARGS
 #endif
 
 #define CONFIG_BOOTCOMMAND \
@@ -317,11 +316,12 @@
 #define CONFIG_G_DNL_MANUFACTURER "Texas Instruments"
 #endif /* CONFIG_MUSB_GADGET */
 
-#if defined(CONFIG_SPL_BUILD) && defined(CONFIG_SPL_USBETH_SUPPORT)
 /* Remove other SPL modes. */
 #undef CONFIG_SPL_YMODEM_SUPPORT
 #undef CONFIG_SPL_NAND_SUPPORT
 #undef CONFIG_SPL_MMC_SUPPORT
+
+#if defined(CONFIG_SPL_BUILD) && defined(CONFIG_SPL_USBETH_SUPPORT)
 #define CONFIG_ENV_IS_NOWHERE
 #undef CONFIG_ENV_IS_IN_NAND
 /* disable host part of MUSB in SPL */
@@ -333,52 +333,6 @@
 #define CONFIG_SPL_NET_SUPPORT
 #define CONFIG_SPL_ENV_SUPPORT
 #define CONFIG_SPL_NET_VCI_STRING	"AM335x U-Boot SPL"
-#endif
-
-/* USB Device Firmware Update support */
-#ifndef CONFIG_SPL_BUILD
-#define CONFIG_DFU_FUNCTION
-#define CONFIG_DFU_MMC
-#define CONFIG_CMD_DFU
-#define DFU_ALT_INFO_MMC \
-	"dfu_alt_info_mmc=" \
-	"boot part 0 1;" \
-	"rootfs part 0 2;" \
-	"MLO fat 0 1;" \
-	"MLO.raw raw 0x100 0x100;" \
-	"u-boot.img.raw raw 0x300 0x400;" \
-	"spl-os-args.raw raw 0x80 0x80;" \
-	"spl-os-image.raw raw 0x900 0x2000;" \
-	"spl-os-args fat 0 1;" \
-	"spl-os-image fat 0 1;" \
-	"u-boot.img fat 0 1;" \
-	"uEnv.txt fat 0 1\0"
-#ifdef CONFIG_NAND
-#define CONFIG_DFU_NAND
-#define DFU_ALT_INFO_NAND \
-	"dfu_alt_info_nand=" \
-	"SPL part 0 1;" \
-	"SPL.backup1 part 0 2;" \
-	"SPL.backup2 part 0 3;" \
-	"SPL.backup3 part 0 4;" \
-	"u-boot part 0 5;" \
-	"u-boot-spl-os part 0 6;" \
-	"kernel part 0 8;" \
-	"rootfs part 0 9\0"
-#else
-#define DFU_ALT_INFO_NAND ""
-#endif
-#define CONFIG_DFU_RAM
-#define DFU_ALT_INFO_RAM \
-	"dfu_alt_info_ram=" \
-	"kernel ram 0x80200000 0xD80000;" \
-	"fdt ram 0x80F80000 0x80000;" \
-	"ramdisk ram 0x81000000 0x4000000\0"
-#define DFUARGS \
-	"dfu_alt_info_emmc=rawemmc raw 0 3751936\0" \
-	DFU_ALT_INFO_MMC \
-	DFU_ALT_INFO_RAM \
-	DFU_ALT_INFO_NAND
 #endif
 
 /*
@@ -407,8 +361,7 @@
 #define MTDIDS_DEFAULT			"nor0=m25p80-flash.0"
 #define MTDPARTS_DEFAULT		"mtdparts=m25p80-flash.0:128k(SPL)," \
 					"512k(u-boot),128k(u-boot-env1)," \
-					"128k(u-boot-env2),3464k(kernel)," \
-					"-(rootfs)"
+					"128k(u-boot-env2),-(blank)"
 #endif
 
 /* SPI flash. */
@@ -423,47 +376,6 @@
 #define CONFIG_PHY_GIGE
 #define CONFIG_PHYLIB
 #define CONFIG_PHY_SMSC
-
-/*
- * NOR Size = 16 MiB
- * Number of Sectors/Blocks = 128
- * Sector Size = 128 KiB
- * Word length = 16 bits
- * Default layout:
- * 0x000000 - 0x07FFFF : U-Boot (512 KiB)
- * 0x080000 - 0x09FFFF : First copy of U-Boot Environment (128 KiB)
- * 0x0A0000 - 0x0BFFFF : Second copy of U-Boot Environment (128 KiB)
- * 0x0C0000 - 0x4BFFFF : Linux Kernel (4 MiB)
- * 0x4C0000 - 0xFFFFFF : Userland (11 MiB + 256 KiB)
- */
-#if defined(CONFIG_NOR)
-#undef CONFIG_SYS_NO_FLASH
-#define CONFIG_CMD_FLASH
-#define CONFIG_SYS_FLASH_USE_BUFFER_WRITE
-#define CONFIG_SYS_FLASH_PROTECTION
-#define CONFIG_SYS_FLASH_CFI
-#define CONFIG_FLASH_CFI_DRIVER
-#define CONFIG_FLASH_CFI_MTD
-#define CONFIG_SYS_MAX_FLASH_SECT	128
-#define CONFIG_SYS_MAX_FLASH_BANKS	1
-#define CONFIG_SYS_FLASH_BASE		(0x08000000)
-#define CONFIG_SYS_FLASH_CFI_WIDTH	FLASH_CFI_16BIT
-#define CONFIG_SYS_FLASH_SIZE		0x01000000
-#define CONFIG_SYS_MONITOR_BASE		CONFIG_SYS_FLASH_BASE
-/* Reduce SPL size by removing unlikey targets */
-#ifdef CONFIG_NOR_BOOT
-#define CONFIG_ENV_IS_IN_FLASH
-#define CONFIG_ENV_SECT_SIZE		(128 << 10)	/* 128 KiB */
-#define CONFIG_ENV_OFFSET		(512 << 10)	/* 512 KiB */
-#define CONFIG_ENV_OFFSET_REDUND	(768 << 10)	/* 768 KiB */
-#define MTDIDS_DEFAULT			"nor0=physmap-flash.0"
-#define MTDPARTS_DEFAULT		"mtdparts=physmap-flash.0:" \
-					"512k(u-boot)," \
-					"128k(u-boot-env1)," \
-					"128k(u-boot-env2)," \
-					"4m(kernel),-(rootfs)"
-#endif
-#endif  /* NOR support */
 
 /* LCD support */
 #define CONFIG_AM335X_LCD
