@@ -91,7 +91,7 @@ static struct module_pin_mux dhcom_gpio1_pin_mux[] = { /* DHCOM GPIOs - A:E */
 	{OFFSET(mcasp0_fsr), (MODE(7) | PULLUDDIS | RXACTIVE)},	        /* GPIO B , Port 3 Pin 19 */
 	{OFFSET(mcasp0_axr1), (MODE(7) | PULLUDDIS | RXACTIVE)},	/* GPIO C , Port 3 Pin 20 */
 	{OFFSET(gpmc_clk), (MODE(7) | PULLUDDIS | RXACTIVE)},	        /* GPIO D , Port 2 Pin 1 */
-	{OFFSET(usb0_drvvbus), (MODE(7) | PULLUDDIS | RXACTIVE)},	/* GPIO E , Port 0 Pin 18 */
+	{OFFSET(gpmc_be1n), (MODE(7) | PULLUDDIS | RXACTIVE)},	        /* GPIO E , Port 1 Pin 28 */
 	{-1},
 };
 
