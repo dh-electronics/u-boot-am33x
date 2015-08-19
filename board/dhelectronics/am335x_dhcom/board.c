@@ -415,33 +415,33 @@ int board_eth_init(bd_t *bis)
 #if defined(CONFIG_SPLASH_SCREEN) && !defined(CONFIG_SPL_BUILD)
 static int board_get_splashimage(void)
 {
-        char *s;
+        char *splashimage;
         char *command;
 
-        s = getenv("splashimage");
-	if (s) { /* only load splash image if we have env var 'splashimage' */
+        splashimage = getenv("splashimage");
+	if (!splashimage) /* only load splash image if 'splashimage' is defined */
+		return 0;
 
-                /* disable console output */
-                gd->flags |= GD_FLG_DISABLE_CONSOLE;
+        if (0x80000000 > simple_strtoul(splashimage, NULL, 16)) {
+		printf ("Error: invalid \"splashimage\" env value!\n");
+		setenv("splashimage", "0x80000000");
+		return -ENOMEM;
+        }
 
-                /* load splash image bmp file from a file system */
-                command = getenv ("load_splash");
-	        if (command == NULL) {
-                        /* enable console output */
-                        gd->flags &= (~GD_FLG_DISABLE_CONSOLE);
-                        printf ("splashimage: \"load_splash\" not defined\n");
-                        return -ENOENT;
-                }
-                else if (run_command (command, 0) != 0) {
-                        /* enable console output */
-                        gd->flags &= (~GD_FLG_DISABLE_CONSOLE);
-                        printf ("Warning: Can't load splash bitmap\n");
-                        return -EIO;
-                }
-
-	        /* enable console output */
-	        gd->flags &= (~GD_FLG_DISABLE_CONSOLE);
-	}
+        gd->flags |= GD_FLG_DISABLE_CONSOLE;
+        /* load splash image bmp file from a file system */
+        command = getenv ("load_splash");
+        if (command == NULL) {
+                gd->flags &= (~GD_FLG_DISABLE_CONSOLE);
+                printf ("splashimage: \"load_splash\" not defined\n");
+                return -ENOENT;
+        }
+        else if (run_command (command, 0) != 0) {
+                gd->flags &= (~GD_FLG_DISABLE_CONSOLE);
+                printf ("Warning: Can't load splash bitmap\n");
+                return -EIO;
+        }
+        gd->flags &= (~GD_FLG_DISABLE_CONSOLE);
 	return 0;
 }
 #endif
