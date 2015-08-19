@@ -94,6 +94,7 @@ extern int do_mem_cp(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[]);
 extern int do_source(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[]); /* cmd_source.c */
 extern int do_env_set(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[]); /* cmd_nvedit.c */
 extern int do_mmcops(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[]); /* cmd_mmc.c */
+extern int do_usb(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[]); /* cmd_usb.c */
 extern int do_bmp (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[]);
 extern int DHCOMUpdateLED_Init(updateinfo_t *p_stDHupdateINI);
 extern void DHCOMUpdateDelayMs(unsigned long msec);
@@ -622,6 +623,11 @@ int ShowBitmap(updateinfo_t *p_stDHupdateINI, enum BitmapTypeEnum eBitmapType, c
         char *p_cDisplayBmpOnScreen[5]  = {"bmp","display",cENVSDRAMBufferAddress,"32767","32767"};
         int ret_value                   = 0;
 
+	if(p_stDHupdateINI->iDisplayInfo != 1) {
+		/* update bmp's not specified in DHupdate.ini, return ... */
+		return 0;
+	}
+
         // Set current device (mmc or usb)
         p_cLoadBmpToSDRAM[1] = p_cStorageDevice;
 
@@ -672,15 +678,10 @@ int ShowBitmap(updateinfo_t *p_stDHupdateINI, enum BitmapTypeEnum eBitmapType, c
 //
 void AcitvateUpdateGPIO(updateinfo_t *p_stDHupdateINI)
 {
-    // Activate Update GPIO
     if(p_stDHupdateINI->iUpdateGpioActiveState == 1)
-    {
         DHCOMUpdateLED_SetHigh();
-    }
     else
-    {
         DHCOMUpdateLED_SetLow();
-    }
 }
 
 //------------------------------------------------------------------------------
@@ -695,15 +696,10 @@ void AcitvateUpdateGPIO(updateinfo_t *p_stDHupdateINI)
 //
 void DeacitvateUpdateGPIO(updateinfo_t *p_stDHupdateINI)
 {
-    // Activate Update GPIO
     if(p_stDHupdateINI->iUpdateGpioActiveState == 1)
-    {
         DHCOMUpdateLED_SetLow();
-    }
     else
-    {
         DHCOMUpdateLED_SetHigh();
-    }
 }
 
 //------------------------------------------------------------------------------
@@ -750,14 +746,9 @@ void ShowUpdateError(updateinfo_t *p_stDHupdateINI, char *p_cErrorStringPointer,
     printf ("%s", p_cErrorStringPointer);
     if(iUpdateViaDHupdateIniFile == 1)
     {
-        // Check if DHupdate.ini contains [display] section
-        if(p_stDHupdateINI->iDisplayInfo == 1)
-        {
-            if(ShowBitmap(p_stDHupdateINI, ERROR_BITMAP, p_cStorageDevice, p_cDevicePartitionNumber) != 0)
-            {
+        if(ShowBitmap(p_stDHupdateINI, ERROR_BITMAP, p_cStorageDevice, p_cDevicePartitionNumber) != 0)
                 printf ("\n--> Update INFO: Error bitmap %s not found\n", p_stDHupdateINI->p_cFileNameErrorBmp);
-            }
-        }
+
         // Don't Start OS after Update error
         ////CLEAR_DH_GD_FLAG(BOOT_AFTER_UPDATE_FLAG);
         
@@ -998,21 +989,16 @@ int DHCOMupdate (cmd_tbl_t *cmdtp, int argc, char * const argv[], updateinfo_t *
 	// If so, load progress bitmap.
 	if(p_stDHupdateINI->iDisplayInfo == 1)
 	{
-		for(i = 0; i < p_stDHupdateINI->iUpdateCounter; i++)
-		{
-			if (strcmp(p_stDHupdateINI->stDHUpdateInfo[i].p_cUpdateType, "refresh") == 0)
-			{
+		for(i = 0; i < p_stDHupdateINI->iUpdateCounter; i++) {
+			if (strcmp(p_stDHupdateINI->stDHUpdateInfo[i].p_cUpdateType, "refresh") == 0) {
 				iRefreshStringFound = 1;
 				break;
 			}
 		}
 
-		if(iRefreshStringFound == 0)
-		{
+		if(iRefreshStringFound == 0) {
 			if(ShowBitmap(p_stDHupdateINI, PROGRESS_BITMAP, p_cStorageDevice, p_cDevicePartitionNumber) != 0)
-			{
 				printf ("\n--> Update INFO: Progress bitmap %s not found", p_stDHupdateINI->p_cFileNameProgressBmp);
-			}
 		}
 	}	
 	
@@ -1086,25 +1072,15 @@ int DHCOMupdate (cmd_tbl_t *cmdtp, int argc, char * const argv[], updateinfo_t *
 					cUpdateArgument = EXECUTE_RESET;
 					p_vUpdateArgument = &cUpdateArgument;
 			}
-			else
-			{
-				if((strcmp(p_stDHupdateINI->stDHUpdateInfo[iUpdateLoopCounter].p_cUpdateType, "linux") == 0) ||
-				   (strcmp(p_stDHupdateINI->stDHUpdateInfo[iUpdateLoopCounter].p_cUpdateType, "rootfs") == 0) ||
-				   (strcmp(p_stDHupdateINI->stDHUpdateInfo[iUpdateLoopCounter].p_cUpdateType, "splash") == 0) ||
-				   (strcmp(p_stDHupdateINI->stDHUpdateInfo[iUpdateLoopCounter].p_cUpdateType, "settings") == 0))
-				{
-					iLoadUpdateKernel = 1;
-					cUpdateArgument = LOAD_UPDATE_KERNEL_LATER;
-					p_vUpdateArgument = &cUpdateArgument;
-				}
-				
-				else
-				{
-					// Wrong argument
-					sprintf (&cErrorString[0], "\n--> Update ERROR: Wrong or no Update Type in DHupdate.ini file\n");
-					ShowUpdateError(p_stDHupdateINI, &cErrorString[0], DHUPDATE_INI_ERROR, iUpdateViaDHupdateIniFile, p_cStorageDevice, p_cDevicePartitionNumber);
-					return 1;
-				}
+			else {
+				iLoadUpdateKernel = 1;
+				cUpdateArgument = LOAD_UPDATE_KERNEL_LATER;
+				p_vUpdateArgument = &cUpdateArgument;
+
+				/*if((strcmp(p_stDHupdateINI->stDHUpdateInfo[iUpdateLoopCounter].p_cUpdateType, "settings") == 0)) {
+					// Set DH settings Filename for refresh command
+					p_cLoadSettingsBinToSDRAM[4] = p_stDHupdateINI->stDHUpdateInfo[iUpdateLoopCounter].p_cFilename;
+				}*/
 			}
 		}
 		else
@@ -1254,12 +1230,8 @@ int DHCOMupdate (cmd_tbl_t *cmdtp, int argc, char * const argv[], updateinfo_t *
 
 					// Check if DHupdate.ini contains [display] section
 					// If so, load progress bitmap.
-					if(p_stDHupdateINI->iDisplayInfo == 1)
-					{
-						if(ShowBitmap(p_stDHupdateINI, PROGRESS_BITMAP, p_cStorageDevice, p_cDevicePartitionNumber) != 0)
-						{
-							printf ("\n--> Update INFO: Progress bitmap %s not found", p_stDHupdateINI->p_cFileNameProgressBmp);
-						}
+					if(ShowBitmap(p_stDHupdateINI, PROGRESS_BITMAP, p_cStorageDevice, p_cDevicePartitionNumber) != 0) {
+						printf ("\n--> Update INFO: Progress bitmap %s not found", p_stDHupdateINI->p_cFileNameProgressBmp);
 					}
 					//board_video_skip();
 
@@ -1359,10 +1331,8 @@ int DHCOMupdate (cmd_tbl_t *cmdtp, int argc, char * const argv[], updateinfo_t *
 	// *************************************************************************************************************************************************
 		
 	// ==> Start Update Kernel	
-	if(iLoadUpdateKernel == 1)	
-	{
-		if ((cmd = getenv ("load_update_kernel")) == NULL) 
-		{
+	if(iLoadUpdateKernel == 1) {
+		if ((cmd = getenv ("load_update_kernel")) == NULL) {
 			sprintf (&cErrorString[0], "\n--> Update ERROR: \"load_update_kernel\" not defined\n");
 			ShowUpdateError(p_stDHupdateINI, &cErrorString[0], CANT_LOAD_UPDATE_KERNEL, iUpdateViaDHupdateIniFile, p_cStorageDevice, p_cDevicePartitionNumber);
 			return 1;			
@@ -1370,8 +1340,9 @@ int DHCOMupdate (cmd_tbl_t *cmdtp, int argc, char * const argv[], updateinfo_t *
 		
 		printf ("\n==> Update: Start to Load Update Kernel\n");		
 
-		setenv("dev", p_cStorageDevice); 
-		setenv("part", p_cDevicePartitionNumber); 			
+		// Set current Update device and partition for update kernel
+		setenv("src_intf", p_cStorageDevice);
+		setenv("src_dev_part", p_cDevicePartitionNumber);
 		
 		run_command (cmd, 0);
 		// If run command returns --> show error
@@ -1380,13 +1351,8 @@ int DHCOMupdate (cmd_tbl_t *cmdtp, int argc, char * const argv[], updateinfo_t *
 		return 1;	
 	}
 	
-	// Check if DHupdate.ini contains [display] section
-	if(p_stDHupdateINI->iDisplayInfo == 1)
-	{
-		if(ShowBitmap(p_stDHupdateINI, END_BITMAP, p_cStorageDevice, p_cDevicePartitionNumber) != 0)
-		{
-			printf ("\n--> Update INFO: End bitmap %s not found\n", p_stDHupdateINI->p_cFileNameOkBmp);
-		}
+	if(ShowBitmap(p_stDHupdateINI, END_BITMAP, p_cStorageDevice, p_cDevicePartitionNumber) != 0) {
+		printf ("\n--> Update INFO: End bitmap %s not found\n", p_stDHupdateINI->p_cFileNameOkBmp);
 	}
 
 	printf ("\n");	
@@ -1410,196 +1376,119 @@ usage:
 //
 int do_DHCOMupdate(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 {
-    // char *p_cUSBInit[2]                     = {"usb","start"};
-    char *p_cMMCDevSDCard[3]                = {"mmc","dev","0"};
-    char *p_cMMCDevMicroSDCard[3]           = {"mmc","dev","1"};
-    char *p_cMMCReScan[2]                   = {"mmc","rescan"};
-    char *p_cCompareString[1]               = {"##DHCOMupdate##\0"};
-    char *cmd;
-    
-    char cSDCardStorageDevice[4]            = {"mmc\0"};
-    char cMicroSDCardDevicePartitionNumber[4]    = {"1:1\0"};   	
-    char cSDCardDevicePartitionNumber[4]    = {"0:1\0"};    
-    char cUSBStorageDevice[4]               = {"usb\0"};    
-    char cUSBHost1DevicePartitionNumber[4]  = {"0:1\0"};   
-    char cDHupdateIniInvalid[8]             = {"INVALID\0"};    
-    
-    int ret_value = 0;
-    int iUpdateDeviceCounter = 0;
-    int iUpdateSuccess = 0;
-    int iDHupdateIniFound = 0;
-    int iStartUpAutomaticallyUpdate = 0;
-    
-    updateinfo_t stDHupdateINI;
-    
-    // Don't Show anything on the display and GPIO's
-    stDHupdateINI.iDisplayInfo = 0;
-    stDHupdateINI.iLedInfo = 0;    
+	char *p_cUSBInit[2]                     = {"usb","start"};    
+	char *p_cMMCDevSDCard[3]                = {"mmc","dev","0"};
+	char *p_cMMCReScan[2]                   = {"mmc","rescan"};
+	char p_cCompareString[]               = "##DHCOMupdate##";
+
+	char cSDCardStorageDevice[] = "mmc"; 	
+	char cSDCardDevicePartitionNumber[] = "0:1";    
+	char cUSBStorageDevice[] = "usb";    
+	char cUSBHost1DevicePartitionNumber[] = "0:1";   
+	char cDHupdateIniInvalid[] = "INVALID";    
+
+	int ret_value = 0;
+	int iUpdateDeviceCounter = 0;
+	int iUpdateSuccess = 0;
+	int iDHupdateIniFound = 0;
+	int update_auto = 0;
+
+	updateinfo_t stDHupdateINI;
+	memset(&stDHupdateINI,0, sizeof(stDHupdateINI));
+
+	// Don't Show anything on the display and GPIO's
+	stDHupdateINI.iDisplayInfo = 0;
+	stDHupdateINI.iLedInfo = 0;    
 	
-    if(argc > 1)
-    {
-        // Check if this is a StartUp automatically Update
-        // In this case, check which storage devices are enabled in the settings block
-        cmd = argv[1];
-            
-        if (strcmp(cmd, "auto") == 0) 
-        {
-            iStartUpAutomaticallyUpdate = 1;
+    if(argc > 1) {
+        // Check for "update auto"          
+        if (strcmp(argv[1], "auto") == 0) {
+            update_auto = 1;
         }
     }
     
     // Check for available storage devices depending on the flags of the settings block
     for(iUpdateDeviceCounter = 1; (iUpdateDeviceCounter <= 4) && (iUpdateSuccess == 0) && (iDHupdateIniFound == 0); iUpdateDeviceCounter++)
     {
-        stDHupdateINI.p_cValidMarker = &cDHupdateIniInvalid[0];
+        stDHupdateINI.p_cValidMarker = cDHupdateIniInvalid;
     
-        switch(iUpdateDeviceCounter)
-        {
-            // MicroSD Card Slot
-            case 1:
-                if(((iStartUpAutomaticallyUpdate == 1) && (gd->dh_board_settings.wHWConfigFlags & UPDATE_VIA_MICROSD_SLOT)) || (iStartUpAutomaticallyUpdate == 0))
-                {
-                    // Call update function, if MicroSD init returns success
-					do_mmcops(NULL, 0, 3, p_cMMCDevMicroSDCard);
-					ret_value = do_mmcops(NULL, 0, 2, p_cMMCReScan);
-					
-                    if(ret_value == 0)
-                    {					
-                        ret_value = DHCOMupdate (cmdtp, argc, argv, &stDHupdateINI, &cSDCardStorageDevice[0], &cMicroSDCardDevicePartitionNumber[0]);
-                        
-                        // Update success
-                        if(ret_value == 0)
-                        {
-                            // Don't try to start update from another storage device
-                            iUpdateSuccess = 1;
-                        }
-						// Wrong update argument. Usage was called...
-						else if(ret_value == 2)
-						{
-							return 1;
-						}
-                        
-                        // DHupdate.ini File found on storage device, but Update fails with error
-                        else if(!(memcmp ( (char*)stDHupdateINI.p_cValidMarker, p_cCompareString[0], 15)))
-                        {
-                            // Don't try to start update from another storage device
-                            iDHupdateIniFound = 1;
-                        }
-
-                        // Command line Update with error --> New line is neccessary
-                        else
-                        {
-                            printf ("\n");
-                        }
-                    }
-                    else
-                    {
-                        printf ("\n--> Update INFO: No MicroSD - Card detected!\n");
-                    }
-				}
-			break;	
-				
-            // SD/MMC Card Slot
-            case 2:
-               if(((iStartUpAutomaticallyUpdate == 1) && (gd->dh_board_settings.wHWConfigFlags & UPDATE_VIA_SD_MMC_SLOT)) ||
-                   (iStartUpAutomaticallyUpdate == 0))
-                {
-                    // Call update function, if MMC/SD init returns success
-					do_mmcops(NULL, 0, 3, p_cMMCDevSDCard);
-					ret_value = do_mmcops(NULL, 0, 2, p_cMMCReScan);
-					
-					if(ret_value == 0)
-                    {
+	switch(iUpdateDeviceCounter)
+	{
+        case 1:
+		/* do nothing, we have only one SD Slot for MicroSD and SD */
+		break;
+	case 2: // SD/MMC Card Slot
+		if(update_auto == 1) { /* check update media flags */
+			if ( !(gd->dh_board_settings.wHWConfigFlags & UPDATE_VIA_SD_MMC_SLOT ||
+			       gd->dh_board_settings.wHWConfigFlags & UPDATE_VIA_MICROSD_SLOT) ) {
+				/* am335x special case: skip SD/µSD update if none of both flags is set */
+				break;
+			}
+		}
+ 
+	       	// Call update function, if MMC/SD init returns success
+		do_mmcops(NULL, 0, 3, p_cMMCDevSDCard);
+		ret_value = do_mmcops(NULL, 0, 2, p_cMMCReScan);
+		if(ret_value == 0) {
                         ret_value = DHCOMupdate (cmdtp, argc, argv, &stDHupdateINI, &cSDCardStorageDevice[0], &cSDCardDevicePartitionNumber[0]);
-                        
-                        // Update success
-                        if(ret_value == 0)
-                        {
-                            // Don't try to start update from another storage device
-                            iUpdateSuccess = 1;
-                        }
-						// Wrong update argument. Usage was called...
-						else if(ret_value == 2)
-						{
-							return 1;
-						}						
-                        
-                        // DHupdate.ini File found on storage device, but Update fails with error
-                        else if(!(memcmp ( (char*)stDHupdateINI.p_cValidMarker, p_cCompareString[0], 15)))
-                        {
-                            // Don't try to start update from another storage device
-                            iDHupdateIniFound = 1;
-                        }
 
-                        // Command line Update with error --> New line is neccessary
-                        else
-                        {
+                        if(ret_value == 0) { // Update success
+                        	// Don't try to start update from another storage device
+                        	iUpdateSuccess = 1;
+                        } else if(ret_value == 2) { // Wrong update argument. Usage was called...
+				return 1;
+			} else if(!(memcmp ( (char*)stDHupdateINI.p_cValidMarker, p_cCompareString, sizeof(p_cCompareString) )) ) { // DHupdate.ini File found on storage device, but Update fails with error
+                            iDHupdateIniFound = 1; // Don't try to start update from another storage device
+                        } else { // Command line Update with error --> New line is neccessary
                             printf ("\n");
                         }
-                    }      
-                    else
-                    {
-                        printf ("\n--> Update INFO: No MMC/SD - Card detected!\n");
-                    }
-				}
-            break;
-            
-            // USB Host 1 Port 
-            case 3:
-                 if(((iStartUpAutomaticallyUpdate == 1) && (gd->dh_board_settings.wHWConfigFlags & UPDATE_VIA_USB_HOST_1_PORT)) ||
-                   (iStartUpAutomaticallyUpdate == 0))
-                {
-                    // Call update function, if USB init returns success
-                    //if(ret_value == 0)
-                    //{
-                        ret_value = DHCOMupdate (cmdtp, argc, argv, &stDHupdateINI, &cUSBStorageDevice[0], &cUSBHost1DevicePartitionNumber[0]);
-                        
-                        // Update success
-                        if(ret_value == 0)
-                        {
-                            // Don't try to start update from another storage device
-                            iUpdateSuccess = 1;
+		} else {
+			printf ("\n--> Update INFO: No MMC/SD - Card detected!\n");
+		}
+		break;
+	case 3: // USB Host 1 Port 
+		if(update_auto == 1) { /* check update media flags */
+			if ( !(gd->dh_board_settings.wHWConfigFlags & UPDATE_VIA_USB_HOST_1_PORT) ) {
+				/* skip USB Host 1 update */
+				break;
+			}
+		}
+                   
+		// Initialize USB Stick
+                printf ("--> Update: Try to initialize USB Stick on Host Port:");
+                ret_value = do_usb(NULL, 0, 2, p_cUSBInit);	
+                if(ret_value == 0) { // Call update function, if USB init returns success
+                	ret_value = DHCOMupdate (cmdtp, argc, argv, &stDHupdateINI, &cUSBStorageDevice[0], &cUSBHost1DevicePartitionNumber[0]);
+			if(ret_value == 0) {
+				// Don't try to start update from another storage device
+				iUpdateSuccess = 1;
+                	} else if(ret_value == 2) { // Wrong update argument. Usage was called...
+				return 1;
+			} else if( 0 == (memcmp ( (char*)stDHupdateINI.p_cValidMarker, p_cCompareString, sizeof(p_cCompareString) )) ) { // DHupdate.ini File found on storage device, but Update fails with error
+                            	iDHupdateIniFound = 1; // Don't try to start update from another storage device
+                        } else { // Command line Update with error --> New line is neccessary
+                            	printf ("\n");
                         }
-						// Wrong update argument. Usage was called...
-						else if(ret_value == 2)
-						{
-							return 1;
-						}						
-                        
-                        // DHupdate.ini File found on storage device, but Update fails with error
-                        else if(!(memcmp ( (char*)stDHupdateINI.p_cValidMarker, p_cCompareString[0], 15)))
-                        {
-                            // Don't try to start update from another storage device
-                            iDHupdateIniFound = 1;
-                        }
-
-                        // Command line Update with error --> New line is neccessary
-                        else
-                        {
-                            printf ("\n");
-                        }
-                    //} 
-                    //else
-                    {
-                        printf ("\n--> Update INFO: No USB Stick detected!\n");
-                    }
-				}
-            break;
-            
-            // USB OTG Port
-            case 4:
-                 if(((iStartUpAutomaticallyUpdate == 1) && (gd->dh_board_settings.wHWConfigFlags & UPDATE_VIA_USB_OTG_PORT)) ||
-                   (iStartUpAutomaticallyUpdate == 0))
-                {
-					printf ("\n--> Update INFO: USB OTG update is not supported yet!\n");
-				}
-            break;
-        } 
+             	} else {
+                	printf ("\n--> Update INFO: No USB Stick detected!\n");
+              	}
+		break;
+	case 4: // USB OTG Port
+		if(update_auto == 1) { /* check update media flags */
+			if ( !(gd->dh_board_settings.wHWConfigFlags & UPDATE_VIA_USB_OTG_PORT) ) {
+				/* skip USB Host 1 update */
+				break;
+			}
+		}
+		printf ("\n--> Update INFO: USB OTG update is not supported yet!\n");
+		break;
+	default:
+		printf ("\n--> Update INFO: Unsupported update media!\n");
+		break;
+    	}
     }
-    
-    // Check if DHupdate.ini contains [led] section
 
-    return 0;
+	return 0;
 }
 
 /* ====================================================================== */
