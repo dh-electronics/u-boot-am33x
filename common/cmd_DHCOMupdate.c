@@ -221,22 +221,15 @@ int update_flash_content (unsigned long ulOffset, unsigned long ulSDRAMBufferAdd
 int update_eeprom_content (unsigned long ulEepromRegisterAddress, unsigned long ulSDRAMBufferAddress, unsigned long ulBytes)
 {
         unsigned int i,j;
-        int ret_value = 0;
+        int old_bus, ret_value;
         uchar ucBuffer;
 
-        /* Set i2c driver to use i2c bus 0  */
-        DISABLE_PRINTF()
-        ret_value = run_command ("i2c dev 0", 0);
-        ENABLE_PRINTF()
-        if (ret_value != 0)
-        {
-                return 1;
-        }
+        /* prepare i2c bus */
+        old_bus = I2C_GET_BUS();
+        I2C_SET_BUS(DISPLAY_ADAPTER_EEPROM_I2C_BUS);
 
-        for(j = 1, i = 0; i < ulBytes; j++, i++)
-        {
-                if(j == 51)
-                {
+        for(j = 1, i = 0; i < ulBytes; j++, i++){
+                if(j == 51) {
                         printf ("\n                         ");
                         j = 1;
                 }
@@ -249,19 +242,8 @@ int update_eeprom_content (unsigned long ulEepromRegisterAddress, unsigned long 
                 ENABLE_PRINTF()
 
                 // Exit on Write ERROR
-                if(ret_value != 0)
-                {
-
-                        /* Set i2c driver back to use i2c bus 2 */
-                        DISABLE_PRINTF()
-                        ret_value = run_command ("i2c dev 2", 0);
-                        ENABLE_PRINTF()
-                        if (ret_value != 0)
-                        {
-                                return 1;
-                        }
-
-
+                if(ret_value != 0) {
+                        I2C_SET_BUS(old_bus);
                         return 1;
                 }
 
@@ -269,40 +251,21 @@ int update_eeprom_content (unsigned long ulEepromRegisterAddress, unsigned long 
         }
 
         // Verify EEPROM data
-        for(i = 0; i < ulBytes; i++)
-        {
+        for(i = 0; i < ulBytes; i++) {
                 DISABLE_PRINTF()
                 ret_value = i2c_read(DISPLAY_ADAPTER_EEPROM_ADDR, i, 1, &ucBuffer, 1);
                 ENABLE_PRINTF()
 
                 // Exit on Write ERROR
-                if((ret_value != 0) || (ucBuffer != *(uchar*)(ulSDRAMBufferAddress+i)))
-                {
-
-                        /* Set i2c driver back to use i2c bus 2 */
-                        DISABLE_PRINTF()
-                        ret_value = run_command ("i2c dev 2", 0);
-                        ENABLE_PRINTF()
-                        if (ret_value != 0)
-                        {
-                                return 1;
-                        }
-
+                if((ret_value != 0) || (ucBuffer != *(uchar*)(ulSDRAMBufferAddress+i))) {
+                        I2C_SET_BUS(old_bus);
                         return 1;
                 }
         }
 
         printf ("]");
 
-        /* Set i2c driver back to use i2c bus 2 */
-        DISABLE_PRINTF()
-        ret_value = run_command ("i2c dev 2", 0);
-        ENABLE_PRINTF()
-        if (ret_value != 0)
-        {
-                return 1;
-        }
-
+        I2C_SET_BUS(old_bus);
         return 0;
 }
 
@@ -360,10 +323,10 @@ int ReadDHupdateFile(updateinfo_t *p_stDHupdateINI, unsigned long ulDHUpdateIniS
         int iPositionPointerMemorize = 0;                           // Old position in DHupdate.ini file
         int iDifference = 0;                                        // differenc between act. and old position
         int iSpecialFilename = 0;
-        char *p_cCompareStringDisplay = {"display\0"};
-        char *p_cCompareStringLED = {"led\0"};
-        char *p_cCompareStringUpdate = {"update\0"};
-        char *p_cCompareStringEnd = {"end\0"};
+        char p_cCompareStringDisplay[] = "display";
+        char p_cCompareStringLED[] = "led";
+        char p_cCompareStringUpdate[] = "update";
+        char p_cCompareStringEnd[] = "end";
 
         // Set to invalid
         p_stDHupdateINI->iDisplayInfo = 0;
