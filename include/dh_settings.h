@@ -30,8 +30,8 @@
  *  Abstract: This file contains DH electronics specific header file stuff
  *
  *  Changes:
- *  	Created: 		May 13, 2011 by Andreas Geisreiter (ageisreiter@dh-electronics.de)
- *  	Modified: 		Jan 20, 2012 by Ludwig Zenz (lzenz@dh-electronics.de)
+ *      Created:                May 13, 2011 by Andreas Geisreiter (ageisreiter@dh-electronics.de)
+ *      Modified:               Jan 20, 2012 by Ludwig Zenz (lzenz@dh-electronics.de)
  */
 
 #ifndef DH_SETTINGS_H
@@ -39,33 +39,34 @@
 
 typedef struct settingsinfo {
 
-    u8      cLength;            // Settings block length
-    u8      cDisplayID;         // Display unique ID
-    u16     wValidationID;      // Settings Block validation ID
+        u8      cLength;            // Settings block length
+        u8      cDisplayID;         // Display unique ID
+        u16     wValidationID;      // Settings Block validation ID
 
-    u16     wYResolution;       // Display y resolution
-    u16     wXResolution;       // Display x resolution
-    
-    u32     wLCDConfigFlags;    // Display configuration flags
-    u32     wPixelClock;        // Display pixel clock
+        u16     wYResolution;       // Display y resolution
+        u16     wXResolution;       // Display x resolution
 
-    u16     wVPulseWidth;       // VSYNC pulse width
-    u16     wHPulseWidth;       // HSYNC pulse width
+        u32     wPixelClock;        // Display pixel clock
 
-    u16     wHBackPorch;        // HSYNC back porch
-    u16     wHFrontPorch;       // HSYNC front porch
-    
-    u16     wVBackPorch;        // VSYNC back porch
-    u16     wVFrontPorch;       // VSYNC front porch   
-    
-    u8      cACBiasTrans;       // AC Bias transitions per interrupt
-    u8      cACBiasFreq;        // AC Bias frequency
-    u16     cDatalines;         // Number of display datalines
-    
-    u32     wGPIODir;           // DHCOM GPIO default direction
-    u32     wGPIOState;         // DHCOM GPIO default state
+        u16     wVPulseWidth;       // VSYNC pulse width
+        u16     wHPulseWidth;       // HSYNC pulse width
 
-    u16     wHWConfigFlags;     // Hardware configuration flags    
+        u16     wHBackPorch;        // HSYNC back porch
+        u16     wHFrontPorch;       // HSYNC front porch
+
+        u16     wVBackPorch;        // VSYNC back porch
+        u16     wVFrontPorch;       // VSYNC front porch
+
+        u8      cACBiasTrans;       // AC Bias transitions per interrupt
+        u8      cACBiasFreq;        // AC Bias frequency
+        u16     cDatalines;         // Number of display datalines
+
+        u32     wLCDConfigFlags;    // Display configuration flags
+
+        u32     wGPIODir;           // DHCOM GPIO default direction
+        u32     wGPIOState;         // DHCOM GPIO default state
+
+        u16     wHWConfigFlags;     // Hardware configuration flags
 } settingsinfo_t;
 
 #define DHCOM_DISPLAY_SETTINGS_SIZE     0x20
@@ -79,6 +80,9 @@ typedef struct settingsinfo {
 #define SETTINGS_LCD_PWM_POL_FLAG       (0x1 << 6)
 #define SETTINGS_LCD_BL_EN_GPIO_FLAG    (0xF << 7)
 #define SETTINGS_LCD_IBL_FLAG           (0x1 << 11)
+#define SETTINGS_LCD_BL_ON_FLAG         (0x1 << 12)
+#define SETTINGS_LCD_DI_TYPE_FLAG       (0x7 << 13)
+#define SETTINGS_LCD_NEXT_DI_FLAG       (0x7 << 16)
 
 #define SETTINGS_HW_SILENT_MODE_FLAG    (0x1 << 0)
 

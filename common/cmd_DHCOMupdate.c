@@ -68,6 +68,7 @@
 #include <i2c.h>
 #include <linux/ctype.h>
 #include <asm/io.h>
+#include <mapmem.h>
 #include <dh_settings.h>
 #include <dh_update.h>
 
@@ -81,6 +82,9 @@ DECLARE_GLOBAL_DATA_PTR;
 #define UPDATE_INI_CMDLINE      0 // = Command line Update with more then 1 arguments (e.g. "update wince dh_nk.gz")
 #define UPDATE_INI_FILE         1 // = DHupdate.ini file Update ("update auto" or command line call "update")
 #define UPDATE_INI_ERROR        2 // = error
+
+#define BOOTFLASH_UBOOT_OFFSET  CONFIG_SYS_SPI_U_BOOT_OFFS
+#define BOOTFLASH_BLOCKSIZE     CONFIG_ENV_SECT_SIZE
 
 // ===============================================================================================================
 // Extern defined variables
@@ -103,6 +107,10 @@ extern int DHCOMUpdateLED_Init(updateinfo_t *p_stDHupdateINI);
 extern void DHCOMUpdateDelayMs(unsigned long msec);
 extern void DHCOMUpdateLED_SetHigh(void);
 extern void DHCOMUpdateLED_SetLow(void);
+
+extern void generate_dh_settings_kernel_args(void); /* am335x_dhcom/board.c */
+extern int load_settings_data(volatile settingsinfo_t *gsb, ulong addr); /* am335x_dhcom/board.c */
+extern int drv_lcd_init(void);
 
 void CopyAddressStringToCharArray(char *p_cCharArray, char *p_cPointer)
 {
@@ -296,54 +304,6 @@ int update_eeprom_content (unsigned long ulEepromRegisterAddress, unsigned long 
         }
 
         return 0;
-}
-
-//------------------------------------------------------------------------------
-//
-//  Function:  UpdateGlobalDataDHSettings
-//
-//  Update the DHsettings global data structure from ram
-//
-//  Commit values:  - addr = Address of the new settings file.
-//
-//  Return value:   0 = No error
-//                  1 = error
-//
-int UpdateGlobalDataDHSettings (ulong addr)
-{
-        // settings.bin file Valid Mask should be "DH" = 0x4844
-        if((((*(ulong *)addr) >> 16) & 0xFFFF) == 0x4844)
-        {
-                gd->dh_board_settings.cLength = (readl(addr) & 0xFF);
-                gd->dh_board_settings.cDisplayID = ((readl(addr) & 0xFF00) >> 8);
-
-                gd->dh_board_settings.wYResolution = (readl(addr+4) & 0xFFFF);
-                gd->dh_board_settings.wXResolution = ((readl(addr+4) & 0xFFFF0000) >> 16);
-
-                gd->dh_board_settings.wLCDConfigFlags = (readl(addr+8) & 0xFFFF);
-                gd->dh_board_settings.wPixelClock = ((readl(addr+8) & 0xFFFF0000) >> 16);
-
-                gd->dh_board_settings.wVPulseWidth = (readl(addr+12) & 0xFFFF);
-                gd->dh_board_settings.wHPulseWidth = ((readl(addr+12) & 0xFFFF0000) >> 16);
-
-                gd->dh_board_settings.wHBackPorch = (readl(addr+16) & 0xFFFF);
-                gd->dh_board_settings.wHFrontPorch = ((readl(addr+16) & 0xFFFF0000) >> 16);
-
-                gd->dh_board_settings.wVBackPorch = (readl(addr+20) & 0xFFFF);
-                gd->dh_board_settings.wVFrontPorch = ((readl(addr+20) & 0xFFFF0000) >> 16);
-
-                gd->dh_board_settings.cACBiasTrans = (readl(addr+24) & 0xFF);
-                gd->dh_board_settings.cACBiasFreq = ((readl(addr+24) & 0xFF00) >> 8);
-                gd->dh_board_settings.cDatalines = ((readl(addr+24) & 0xFFFF0000) >> 16);
-
-                gd->dh_board_settings.wGPIODir = readl(addr+32);
-                gd->dh_board_settings.wGPIOState = readl(addr+36);
-
-                gd->dh_board_settings.wHWConfigFlags = (readl(addr+40) & 0xFFFF);
-
-                return 0;
-        }
-        return 1; /* no valid settings.bin available */
 }
 
 //------------------------------------------------------------------------------
@@ -664,6 +624,8 @@ int ShowBitmap(updateinfo_t *p_stDHupdateINI, enum BitmapTypeEnum eBitmapType, c
         if(ret_value == 0) {
                 do_bmp(NULL, 0, 5, p_cDisplayBmpOnScreen);
                 return 0;
+        } else {
+                printf ("\n--> Update INFO: Bitmap %s not found\n", p_cLoadBmpToSDRAM[4]);
         }
 
         return 1;
@@ -755,9 +717,7 @@ void ShowUpdateError(updateinfo_t *p_stDHupdateINI, char *p_cErrorStringPointer,
                 return;
         }
 
-        if(ShowBitmap(p_stDHupdateINI, ERROR_BITMAP, p_cStorageDevice, p_cDevicePartitionNumber) != 0) {
-                printf ("\n--> Update INFO: Error bitmap %s not found\n", p_stDHupdateINI->p_cFileNameErrorBmp);
-        }
+        ShowBitmap(p_stDHupdateINI, ERROR_BITMAP, p_cStorageDevice, p_cDevicePartitionNumber);
 
         if(p_stDHupdateINI->iLedInfo != 1) {
                 /* no led gpio in DHupdate.ini file */
@@ -796,7 +756,7 @@ void ShowUpdateError(updateinfo_t *p_stDHupdateINI, char *p_cErrorStringPointer,
         /* do the led blinking */
         DeactivateUpdateGPIO(p_stDHupdateINI);
         while(1) {
-                UpdateGPIOBlinkInterval(p_stDHupdateINI, 1);
+                UpdateGPIOBlinkInterval(p_stDHupdateINI, led_blink_code);
                 DHCOMUpdateDelayMs(1750);
         }
 
@@ -832,11 +792,8 @@ int DHCOMupdate (cmd_tbl_t *cmdtp, int argc, char * const argv[], updateinfo_t *
         int update_ini = UPDATE_INI_FILE;
 
         /* get u-boot flash offset and partition size */
-        unsigned long ulBootloaderOffset = CONFIG_SYS_SPI_U_BOOT_OFFS;
-        unsigned long ulBootloaderFlashPartitionSize = CONFIG_ENV_OFFSET;
         unsigned long ulFilesize;
         unsigned long ulBlocks;
-        unsigned long ulFlashBlockSize = CONFIG_ENV_SECT_SIZE;
 
         char cUpdateArgument = 0;
         char cErrorString[100];
@@ -852,6 +809,7 @@ int DHCOMupdate (cmd_tbl_t *cmdtp, int argc, char * const argv[], updateinfo_t *
         char *p_cLoadUBootBinToSDRAM[5]         = {"load","","",cENVSDRAMBufferAddress,"u-boot.img"};
         char *p_cLoadEepromBinToSDRAM[5]        = {"load","","",cENVSDRAMBufferAddress,"eeprom.bin"};
         char *p_cLoadScriptBinToSDRAM[5]        = {"load","","",cENVSDRAMBufferAddress,"script.bin"};
+        char *p_cLoadSettingsBinToSDRAM[5]      = {"load","","",cENVSDRAMBufferAddress,"settings.bin"};
         char *p_cRunScript[2]                   = {"source",cENVSDRAMBufferAddress};
 
         int ret_value = 0;
@@ -861,12 +819,14 @@ int DHCOMupdate (cmd_tbl_t *cmdtp, int argc, char * const argv[], updateinfo_t *
         p_cLoadUBootBinToSDRAM[1] = p_cStorageDevice;
         p_cLoadEepromBinToSDRAM[1] = p_cStorageDevice;
         p_cLoadScriptBinToSDRAM[1] = p_cStorageDevice;
+        p_cLoadSettingsBinToSDRAM[1] = p_cStorageDevice;
 
         // Set current device number and partition
         p_cLoadDHUpdateIniToSDRAM[2] = p_cDevicePartitionNumber;
         p_cLoadUBootBinToSDRAM[2] = p_cDevicePartitionNumber;
         p_cLoadEepromBinToSDRAM[2] = p_cDevicePartitionNumber;
         p_cLoadScriptBinToSDRAM[2] = p_cDevicePartitionNumber;
+        p_cLoadSettingsBinToSDRAM[2] = p_cDevicePartitionNumber;
 
         // Update without DHupdate.ini file --> Command line update
         if(argc > 1) {
@@ -952,8 +912,7 @@ int DHCOMupdate (cmd_tbl_t *cmdtp, int argc, char * const argv[], updateinfo_t *
                 }
 
                 if(iRefreshStringFound == 0) {
-                        if(ShowBitmap(p_stDHupdateINI, PROGRESS_BITMAP, p_cStorageDevice, p_cDevicePartitionNumber) != 0)
-                                printf ("\n--> Update INFO: Progress bitmap %s not found", p_stDHupdateINI->p_cFileNameProgressBmp);
+                        ShowBitmap(p_stDHupdateINI, PROGRESS_BITMAP, p_cStorageDevice, p_cDevicePartitionNumber);
                 }
         }
 
@@ -1027,10 +986,10 @@ int DHCOMupdate (cmd_tbl_t *cmdtp, int argc, char * const argv[], updateinfo_t *
                                 cUpdateArgument = LOAD_UPDATE_KERNEL_LATER;
                                 p_vUpdateArgument = &cUpdateArgument;
 
-                                /*if((strcmp(p_stDHupdateINI->stDHUpdateInfo[iUpdateLoopCounter].p_cUpdateType, "settings") == 0)) {
+                                if((strcmp(p_stDHupdateINI->stDHUpdateInfo[iUpdateLoopCounter].p_cUpdateType, "settings") == 0)) {
                                     // Set DH settings Filename for refresh command
                                     p_cLoadSettingsBinToSDRAM[4] = p_stDHupdateINI->stDHUpdateInfo[iUpdateLoopCounter].p_cFilename;
-                                }*/
+                                }
                         }
                 }
                 else
@@ -1065,10 +1024,10 @@ int DHCOMupdate (cmd_tbl_t *cmdtp, int argc, char * const argv[], updateinfo_t *
 
                                 // Calculate necessary sectors in flash for the u-boot image file.
                                 ulFilesize = simple_strtoul (getenv("filesize"), NULL, 16);
-                                ulBlocks = (ulFilesize+ulBootloaderOffset) / ulFlashBlockSize + 0x1;
+                                ulBlocks = (ulFilesize+BOOTFLASH_UBOOT_OFFSET) / BOOTFLASH_BLOCKSIZE + 0x1;
 
                                 // Check if the file fits into to the flash-partition
-                                if (check_imagesize (ulFilesize+ulBootloaderOffset, ulBootloaderFlashPartitionSize, BOOTLOADER_FLASH_UPDATE, cErrorString ))
+                                if (check_imagesize (ulFilesize+BOOTFLASH_UBOOT_OFFSET, CONFIG_ENV_OFFSET, BOOTLOADER_FLASH_UPDATE, cErrorString ))
                                 {
                                         // ERROR: file is to large for the specified partition
                                         ShowUpdateError(p_stDHupdateINI, cErrorString, IMAGE_SIZE_ERROR, update_ini, p_cStorageDevice, p_cDevicePartitionNumber);
@@ -1081,17 +1040,17 @@ int DHCOMupdate (cmd_tbl_t *cmdtp, int argc, char * const argv[], updateinfo_t *
                                 printf ("    d = Done\n");
                                 printf ("    Write File to Flash:[");
 
-                                ret_value = update_flash_content (ulBootloaderOffset, ulSDRAMBufferAddress, ulBlocks, ulFlashBlockSize);
+                                ret_value = update_flash_content (BOOTFLASH_UBOOT_OFFSET, ulSDRAMBufferAddress, ulBlocks, BOOTFLASH_BLOCKSIZE);
 
                                 if((ret_value & 0x3) == 1)
                                 {
-                                        sprintf (&cErrorString[0], "\n--> Update ERROR: Erase error on block 0x%08x\n", (unsigned int)(ulBootloaderOffset + (ret_value >> 2) * ulFlashBlockSize));
+                                        sprintf (&cErrorString[0], "\n--> Update ERROR: Erase error on block 0x%08x\n", (unsigned int)(BOOTFLASH_UBOOT_OFFSET + (ret_value >> 2) * BOOTFLASH_BLOCKSIZE));
                                         ShowUpdateError(p_stDHupdateINI, &cErrorString[0], FLASH_ERROR, update_ini, p_cStorageDevice, p_cDevicePartitionNumber);
                                         return 1;
                                 }
                                 else if((ret_value & 0x3) == 2)
                                 {
-                                        sprintf (&cErrorString[0], "\n--> Update ERROR: Write error on block 0x%08x\n", (unsigned int)(ulBootloaderOffset + (ret_value >> 2) * ulFlashBlockSize));
+                                        sprintf (&cErrorString[0], "\n--> Update ERROR: Write error on block 0x%08x\n", (unsigned int)(BOOTFLASH_UBOOT_OFFSET + (ret_value >> 2) * BOOTFLASH_BLOCKSIZE));
                                         ShowUpdateError(p_stDHupdateINI, &cErrorString[0], FLASH_ERROR, update_ini, p_cStorageDevice, p_cDevicePartitionNumber);
                                         return 1;
                                 }
@@ -1158,38 +1117,29 @@ int DHCOMupdate (cmd_tbl_t *cmdtp, int argc, char * const argv[], updateinfo_t *
                 // ****************************** Refresh DH settings ***********************************
                 // ***************************************************************************************
                 case REFRESH_DH_SETTINGS:
-                        printf ("\n==> Update: Refresh NOT IMPLEMENTED AT THE MOMENT!!!");
-
-                        if(ShowBitmap(p_stDHupdateINI, PROGRESS_BITMAP, p_cStorageDevice, p_cDevicePartitionNumber) != 0)
-                        {
-                                printf ("\n--> Update INFO: Progress bitmap %s not found", p_stDHupdateINI->p_cFileNameProgressBmp);
+                        printf ("\n==> Update: Refresh DH settings");
+                        ret_value = do_load_wrapper(NULL, 0, 5, p_cLoadSettingsBinToSDRAM);
+                        if (0 != ret_value) {
+                                // Can't load settings file from Storage Device to SDRAM.
+                                sprintf (&cErrorString[0], "\n--> Update ERROR: No %s file found on Storage Device\n", (char*)p_cLoadSettingsBinToSDRAM[4]);
+                                ShowUpdateError(p_stDHupdateINI, cErrorString, FILE_NOT_FOUND_ERROR, update_ini, p_cStorageDevice, p_cDevicePartitionNumber);
+                                return 1;
                         }
-                        /*printf ("\n==> Update: Refresh DH settings");
 
-                        if(UpdateGlobalDataDHSettings(ulSDRAMBufferAddress) == 0)
-                        {
-                            //lcd_ctrl_init ((void *)(gd->fb_base));
+                        if(load_settings_data(&gd->dh_board_settings, ulSDRAMBufferAddress) == 0) {
+                                generate_dh_settings_kernel_args();
 
-                            // Check if DHupdate.ini contains [display] section
-                            // If so, load progress bitmap.
-                            if(ShowBitmap(p_stDHupdateINI, PROGRESS_BITMAP, p_cStorageDevice, p_cDevicePartitionNumber) != 0) {
-                                printf ("\n--> Update INFO: Progress bitmap %s not found", p_stDHupdateINI->p_cFileNameProgressBmp);
-                            }
-                            //board_video_skip();
-
-                            //video_init();
-                            //drv_video_init();
-
-                            // Refresh DH settings done.
-                            printf ("\n--> Update: Refresh DH settings done\n");
+#if defined(CONFIG_LCD) && !defined(CONFIG_SPL_BUILD)
+                                drv_lcd_init();
+                                ShowBitmap(p_stDHupdateINI, PROGRESS_BITMAP, p_cStorageDevice, p_cDevicePartitionNumber);
+#endif
+                                printf ("\n--> Update: Refresh DH settings done\n");
+                        } else {
+                                // No valid DH settings FIle found on SDRAM
+                                sprintf (&cErrorString[0], "\n--> Update ERROR: No valid DH settings data\n");
+                                ShowUpdateError(p_stDHupdateINI, cErrorString, FILE_NOT_FOUND_ERROR, update_ini, p_cStorageDevice, p_cDevicePartitionNumber);
+                                return 1;
                         }
-                        else
-                        {
-                            // No valid DH settings FIle found on SDRAM
-                            sprintf (&cErrorString[0], "\n--> Update ERROR: No valid DH settings file found on RAM (Note: Set \"refresh\" string after \"settings\" update)\n");
-                            ShowUpdateError(p_stDHupdateINI, &cErrorString[0], FILE_NOT_FOUND_ERROR, update_ini, p_cStorageDevice, p_cDevicePartitionNumber);
-                            return 1;
-                        }*/
                         printf ("\n");
                         break;
                 // ***************************************************************************************
@@ -1289,12 +1239,8 @@ int DHCOMupdate (cmd_tbl_t *cmdtp, int argc, char * const argv[], updateinfo_t *
                 return 1;
         }
 
-        if(ShowBitmap(p_stDHupdateINI, END_BITMAP, p_cStorageDevice, p_cDevicePartitionNumber) != 0) {
-                printf ("\n--> Update INFO: End bitmap %s not found\n", p_stDHupdateINI->p_cFileNameOkBmp);
-        }
-
+        ShowBitmap(p_stDHupdateINI, END_BITMAP, p_cStorageDevice, p_cDevicePartitionNumber);
         printf ("\n");
-
         return 0;
 
 usage:
