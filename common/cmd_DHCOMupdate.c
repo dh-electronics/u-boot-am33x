@@ -935,49 +935,29 @@ int DHCOMupdate (cmd_tbl_t *cmdtp, int argc, char * const argv[], updateinfo_t *
                 // Identify the next specified update in DHupdate.ini file
                 if(update_ini == UPDATE_INI_FILE)
                 {
-                        // Don't enable printf after update, if DIS_PRINTF in settings.bin file is set.
-                        ////SET_DH_GD_FLAG(UPDATE_ACTIVE_FLAG);
-
-                        if (strcmp(p_stDHupdateINI->stDHUpdateInfo[iUpdateLoopCounter].p_cUpdateType, "bootloader") == 0)
-                        {
-                                cUpdateArgument = BOOTLOADER_FLASH_UPDATE;
-                                p_vUpdateArgument = &cUpdateArgument;
-
-                                // Check if filename is specified in DHupdate.ini file
-                                if(p_stDHupdateINI->stDHUpdateInfo[iUpdateLoopCounter].p_cFilename != NULL)
-                                {
-                                        p_cLoadUBootBinToSDRAM[4] = p_stDHupdateINI->stDHUpdateInfo[iUpdateLoopCounter].p_cFilename;
-                                }
-                        }
-                        else if (strcmp(p_stDHupdateINI->stDHUpdateInfo[iUpdateLoopCounter].p_cUpdateType, "eeprom") == 0)
-                        {
+                        if (strcmp(p_stDHupdateINI->stDHUpdateInfo[iUpdateLoopCounter].p_cUpdateType, "eeprom") == 0) {
                                 cUpdateArgument = EEPROM_SETTINGS_UPDATE;
                                 p_vUpdateArgument = &cUpdateArgument;
 
                                 // Check if filename is specified in DHupdate.ini file
-                                if(p_stDHupdateINI->stDHUpdateInfo[iUpdateLoopCounter].p_cFilename != NULL)
-                                {
+                                if(p_stDHupdateINI->stDHUpdateInfo[iUpdateLoopCounter].p_cFilename != NULL) {
                                         p_cLoadEepromBinToSDRAM[4] = p_stDHupdateINI->stDHUpdateInfo[iUpdateLoopCounter].p_cFilename;
                                 }
                         }
-                        else if (strcmp(p_stDHupdateINI->stDHUpdateInfo[iUpdateLoopCounter].p_cUpdateType, "script") == 0)
-                        {
+                        else if (strcmp(p_stDHupdateINI->stDHUpdateInfo[iUpdateLoopCounter].p_cUpdateType, "script") == 0) {
                                 cUpdateArgument = EXECUTE_BOOTLOADER_SCRIPT;
                                 p_vUpdateArgument = &cUpdateArgument;
 
                                 // Check if filename is specified in DHupdate.ini file
-                                if(p_stDHupdateINI->stDHUpdateInfo[iUpdateLoopCounter].p_cFilename != NULL)
-                                {
+                                if(p_stDHupdateINI->stDHUpdateInfo[iUpdateLoopCounter].p_cFilename != NULL) {
                                         p_cLoadScriptBinToSDRAM[4] = p_stDHupdateINI->stDHUpdateInfo[iUpdateLoopCounter].p_cFilename;
                                 }
                         }
-                        else if (strcmp(p_stDHupdateINI->stDHUpdateInfo[iUpdateLoopCounter].p_cUpdateType, "refresh") == 0)
-                        {
+                        else if (strcmp(p_stDHupdateINI->stDHUpdateInfo[iUpdateLoopCounter].p_cUpdateType, "refresh") == 0) {
                                 cUpdateArgument = REFRESH_DH_SETTINGS;
                                 p_vUpdateArgument = &cUpdateArgument;
                         }
-                        else if (strcmp(p_stDHupdateINI->stDHUpdateInfo[iUpdateLoopCounter].p_cUpdateType, "reset") == 0)
-                        {
+                        else if (strcmp(p_stDHupdateINI->stDHUpdateInfo[iUpdateLoopCounter].p_cUpdateType, "reset") == 0) {
                                 cUpdateArgument = EXECUTE_RESET;
                                 p_vUpdateArgument = &cUpdateArgument;
                         }
@@ -992,8 +972,7 @@ int DHCOMupdate (cmd_tbl_t *cmdtp, int argc, char * const argv[], updateinfo_t *
                                 }
                         }
                 }
-                else
-                {
+                else {
                         // Run only one command line update
                         p_stDHupdateINI->iUpdateCounter = 1;
                 }
