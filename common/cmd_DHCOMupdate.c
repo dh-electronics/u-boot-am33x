@@ -671,7 +671,7 @@ int ShowBitmap(updateinfo_t *p_stDHupdateINI, enum BitmapTypeEnum eBitmapType, c
 
 //------------------------------------------------------------------------------
 //
-//  Function:  AcitvateUpdateGPIO
+//  Function:  ActivateUpdateGPIO
 //
 //  Activate the Update GPIO
 //
@@ -679,7 +679,7 @@ int ShowBitmap(updateinfo_t *p_stDHupdateINI, enum BitmapTypeEnum eBitmapType, c
 //
 //  Return value:   -
 //
-void AcitvateUpdateGPIO(updateinfo_t *p_stDHupdateINI)
+void ActivateUpdateGPIO(updateinfo_t *p_stDHupdateINI)
 {
         if(p_stDHupdateINI->iUpdateGpioActiveState == 1)
                 DHCOMUpdateLED_SetHigh();
@@ -689,7 +689,7 @@ void AcitvateUpdateGPIO(updateinfo_t *p_stDHupdateINI)
 
 //------------------------------------------------------------------------------
 //
-//  Function:  DeacitvateUpdateGPIO
+//  Function:  DeactivateUpdateGPIO
 //
 //  Deactivate the Update GPIO
 //
@@ -697,7 +697,7 @@ void AcitvateUpdateGPIO(updateinfo_t *p_stDHupdateINI)
 //
 //  Return value:   -
 //
-void DeacitvateUpdateGPIO(updateinfo_t *p_stDHupdateINI)
+void DeactivateUpdateGPIO(updateinfo_t *p_stDHupdateINI)
 {
         if(p_stDHupdateINI->iUpdateGpioActiveState == 1)
                 DHCOMUpdateLED_SetLow();
@@ -718,12 +718,11 @@ void DeacitvateUpdateGPIO(updateinfo_t *p_stDHupdateINI)
 //
 void UpdateGPIOBlinkInterval(updateinfo_t *p_stDHupdateINI, int iNumber)
 {
-        for( ; iNumber > 0; iNumber--)
-        {
+        for( ; iNumber > 0; iNumber--) {
                 DHCOMUpdateDelayMs(250);
-                AcitvateUpdateGPIO(p_stDHupdateINI);
+                ActivateUpdateGPIO(p_stDHupdateINI);
                 DHCOMUpdateDelayMs(250);
-                DeacitvateUpdateGPIO(p_stDHupdateINI);
+                DeactivateUpdateGPIO(p_stDHupdateINI);
         }
 }
 
@@ -746,81 +745,59 @@ void UpdateGPIOBlinkInterval(updateinfo_t *p_stDHupdateINI, int iNumber)
 //
 void ShowUpdateError(updateinfo_t *p_stDHupdateINI, char *p_cErrorStringPointer, enum UpdateErrorEnum eDHCOMUpdateError, int update_ini, char *p_cStorageDevice, char *p_cDevicePartitionNumber)
 {
+        int led_blink_code = 0;
+
         printf ("%s", p_cErrorStringPointer);
-        if(update_ini == UPDATE_INI_FILE)
+
+        if(update_ini != UPDATE_INI_FILE) {
+                /* update visualisation with *.bmp and gpio is
+                 * only supported in DHupdate.ini file mode */
+                return;
+        }
+
+        if(ShowBitmap(p_stDHupdateINI, ERROR_BITMAP, p_cStorageDevice, p_cDevicePartitionNumber) != 0) {
+                printf ("\n--> Update INFO: Error bitmap %s not found\n", p_stDHupdateINI->p_cFileNameErrorBmp);
+        }
+
+        if(p_stDHupdateINI->iLedInfo != 1) {
+                /* no led gpio in DHupdate.ini file */
+                return;
+        }
+
+        /* translate error code to led blink code */
+        switch(eDHCOMUpdateError)
         {
-                if(ShowBitmap(p_stDHupdateINI, ERROR_BITMAP, p_cStorageDevice, p_cDevicePartitionNumber) != 0)
-                        printf ("\n--> Update INFO: Error bitmap %s not found\n", p_stDHupdateINI->p_cFileNameErrorBmp);
+        case DHUPDATE_INI_ERROR:
+                led_blink_code = 1;
+                break;
+        case FILE_NOT_FOUND_ERROR:
+                led_blink_code = 2;
+                break;
+        case FLASH_ERROR:
+                led_blink_code = 3;
+                break;
+        case IMAGE_TYPE_ERROR:
+                led_blink_code = 4;
+                break;
+        case INVALID_FILE_ERROR:
+                led_blink_code = 5;
+                break;
+        case IMAGE_SIZE_ERROR:
+                led_blink_code = 6;
+                break;
+        case CANT_LOAD_UPDATE_KERNEL:
+                led_blink_code = 7;
+                break;
+        default:
+                /* No or a unknown error */
+                return;
+        }
 
-                // Don't Start OS after Update error
-                ////CLEAR_DH_GD_FLAG(BOOT_AFTER_UPDATE_FLAG);
-
-                if(p_stDHupdateINI->iLedInfo == 1)
-                {
-                        switch(eDHCOMUpdateError)
-                        {
-                        case DHUPDATE_INI_ERROR:
-                                DeacitvateUpdateGPIO(p_stDHupdateINI);
-                                while(1)
-                                {
-                                        UpdateGPIOBlinkInterval(p_stDHupdateINI, 1);
-                                        DHCOMUpdateDelayMs(1750);
-                                }
-                                break;
-                        case FILE_NOT_FOUND_ERROR:
-                                DeacitvateUpdateGPIO(p_stDHupdateINI);
-                                while(1)
-                                {
-                                        UpdateGPIOBlinkInterval(p_stDHupdateINI, 2);
-                                        DHCOMUpdateDelayMs(1750);
-                                }
-                                break;
-                        case FLASH_ERROR:
-                                DeacitvateUpdateGPIO(p_stDHupdateINI);
-                                while(1)
-                                {
-                                        UpdateGPIOBlinkInterval(p_stDHupdateINI, 3);
-                                        DHCOMUpdateDelayMs(1750);
-                                }
-                                break;
-                        case IMAGE_TYPE_ERROR:
-                                DeacitvateUpdateGPIO(p_stDHupdateINI);
-                                while(1)
-                                {
-                                        UpdateGPIOBlinkInterval(p_stDHupdateINI, 4);
-                                        DHCOMUpdateDelayMs(1750);
-                                }
-                                break;
-                        case INVALID_FILE_ERROR:
-                                DeacitvateUpdateGPIO(p_stDHupdateINI);
-                                while(1)
-                                {
-                                        UpdateGPIOBlinkInterval(p_stDHupdateINI, 5);
-                                        DHCOMUpdateDelayMs(1750);
-                                }
-                                break;
-                        case IMAGE_SIZE_ERROR:
-                                DeacitvateUpdateGPIO(p_stDHupdateINI);
-                                while(1)
-                                {
-                                        UpdateGPIOBlinkInterval(p_stDHupdateINI, 6);
-                                        DHCOMUpdateDelayMs(1750);
-                                }
-                                break;
-                        case CANT_LOAD_UPDATE_KERNEL:
-                                DeacitvateUpdateGPIO(p_stDHupdateINI);
-                                while(1)
-                                {
-                                        UpdateGPIOBlinkInterval(p_stDHupdateINI, 7);
-                                        DHCOMUpdateDelayMs(1750);
-                                }
-                                break;
-                        case NO_ERROR:
-                                /* This case is to suppress warnings */
-                                break;
-                        }
-
-                }
+        /* do the led blinking */
+        DeactivateUpdateGPIO(p_stDHupdateINI);
+        while(1) {
+                UpdateGPIOBlinkInterval(p_stDHupdateINI, 1);
+                DHCOMUpdateDelayMs(1750);
         }
 
         return;
@@ -989,7 +966,7 @@ int DHCOMupdate (cmd_tbl_t *cmdtp, int argc, char * const argv[], updateinfo_t *
                         p_stDHupdateINI->iLedInfo = 0;
                 } else {
                         // Activate Update GPIO
-                        AcitvateUpdateGPIO(p_stDHupdateINI);
+                        ActivateUpdateGPIO(p_stDHupdateINI);
                 }
         }
 
@@ -1082,12 +1059,8 @@ int DHCOMupdate (cmd_tbl_t *cmdtp, int argc, char * const argv[], updateinfo_t *
                         // Load u-boot image file  from Storage Device to SDRAM.
                         printf("\n\nLoad u-boot with: %s, %s, %s, %s, %s \n", p_cLoadUBootBinToSDRAM[0], p_cLoadUBootBinToSDRAM[1], p_cLoadUBootBinToSDRAM[2], p_cLoadUBootBinToSDRAM[3], p_cLoadUBootBinToSDRAM[4]);
 
-                        ////DISABLE_PRINTF()
                         ret_value = do_load_wrapper(NULL, 0, 5, p_cLoadUBootBinToSDRAM);
-                        ////SESSION_DEPENDED_PRINTF_ENABLE()
-
-                        if(ret_value == 0)
-                        {
+                        if(ret_value == 0) {
                                 printf ("\n--> Update: Load %s to SDRAM (%d bytes)", (char*)p_cLoadUBootBinToSDRAM[4], (int)simple_strtoul (getenv("filesize"), NULL, 16));
 
                                 // Calculate necessary sectors in flash for the u-boot image file.
@@ -1140,12 +1113,8 @@ int DHCOMupdate (cmd_tbl_t *cmdtp, int argc, char * const argv[], updateinfo_t *
                 case EEPROM_SETTINGS_UPDATE:
                         printf ("\n==> Update: Start to Update display adapter eeprom content\n");
                         // Load eeprom file from Storage Device to SDRAM.
-                        ////DISABLE_PRINTF()
                         ret_value = do_load_wrapper(NULL, 0, 5, p_cLoadEepromBinToSDRAM);
-                        ////SESSION_DEPENDED_PRINTF_ENABLE()
-
-                        if(ret_value == 0)
-                        {
+                        if(ret_value == 0) {
                                 printf ("\n--> Update: Load %s to SDRAM (%d bytes)", (char*)p_cLoadEepromBinToSDRAM[4], (int)simple_strtoul (getenv("filesize"), NULL, 16));
 
                                 // Get eeprom.bin filesize
@@ -1230,17 +1199,13 @@ int DHCOMupdate (cmd_tbl_t *cmdtp, int argc, char * const argv[], updateinfo_t *
                         printf ("\n==> Update: Execute Bootloader Script");
 
                         ret_value = do_load_wrapper(NULL, 0, 5, p_cLoadScriptBinToSDRAM);
-
-                        if(ret_value == 0)
-                        {
+                        if(ret_value == 0) {
                                 printf ("\n--> Update: Load %s to SDRAM (%d bytes)", (char*)p_cLoadScriptBinToSDRAM[4], (int)simple_strtoul (getenv("filesize"), NULL, 16));
 
                                 printf ("\n\n----------------- Print Script Info: -----------------\n");
                                 do_source(NULL, 0, 2, p_cRunScript);
                                 printf ("\n----------------------------------------------------------\n");
-                        }
-                        else
-                        {
+                        } else {
                                 // Can't load script file from Storage Device to SDRAM.
                                 sprintf (&cErrorString[0], "\n--> Update ERROR: No %s file found on Storage Device\n", (char*)p_cLoadScriptBinToSDRAM[4]);
                                 ShowUpdateError(p_stDHupdateINI, &cErrorString[0], FILE_NOT_FOUND_ERROR, update_ini, p_cStorageDevice, p_cDevicePartitionNumber);
