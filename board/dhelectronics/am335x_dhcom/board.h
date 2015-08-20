@@ -31,4 +31,6 @@ void enable_uart1_pin_mux(void);
 void enable_i2c0_pin_mux(void);
 void enable_pwm_pin_mux(void);
 void enable_board_pin_mux(void);
+void detect_hw_version(void);
+int get_hardware_version(void);
 #endif

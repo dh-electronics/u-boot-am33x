@@ -261,6 +261,8 @@ void sdram_init(void)
  */
 int board_init(void)
 {
+        detect_hw_version();
+
 #if defined(CONFIG_HW_WATCHDOG)
         hw_watchdog_init();
 #endif
@@ -275,6 +277,45 @@ int board_init(void)
 #ifdef CONFIG_BOARD_LATE_INIT
 int board_late_init(void)
 {
+        u32 cfg = readl(0x44E10604) & 0xFFFFFFFF;
+        u32 hw_code = 0;
+        uchar buf[128];
+
+        hw_code = get_hardware_version();
+
+        switch (cfg)
+        {
+        case 0x00FC0382:
+                sprintf((char *)buf, "am3352-dhcom%d",hw_code);
+                setenv("dhcom", (char *)buf);
+                break;
+        case 0x20FC0382:
+                sprintf((char *)buf, "am3354-dhcom%d",hw_code);
+                setenv("dhcom", (char *)buf);
+                break;
+        case 0x00FD0383:
+                sprintf((char *)buf, "am3356-dhcom%d",hw_code);
+                setenv("dhcom", (char *)buf);
+                break;
+        case 0x00FF0383:
+                sprintf((char *)buf, "am3357-dhcom%d",hw_code);
+                setenv("dhcom", (char *)buf);
+                break;
+        case 0x20FD0383:
+                sprintf((char *)buf, "am3358-dhcom%d",hw_code);
+                setenv("dhcom", (char *)buf);
+                break;
+        case 0x20FF0383:
+                sprintf((char *)buf, "am3359-dhcom%d",hw_code);
+                setenv("dhcom", (char *)buf);
+                break;
+
+        default:
+                sprintf((char *)buf, "am335x-dhcom%d",hw_code);
+                setenv("dhcom", (char *)buf);
+                break;
+
+        }
         return 0;
 }
 #endif
