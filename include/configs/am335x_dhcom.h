@@ -27,10 +27,10 @@
 # define CONFIG_LZO
 #endif
 
-#define CONFIG_SYS_BOOTM_LEN		(16 << 20)
+#define CONFIG_SYS_BOOTM_LEN            (16 << 20)
 
-#define MACH_TYPE_TIAM335EVM		3589	/* Until the next sync */
-#define CONFIG_MACH_TYPE		MACH_TYPE_TIAM335EVM
+#define MACH_TYPE_TIAM335EVM            3589    /* Until the next sync */
+#define CONFIG_MACH_TYPE                MACH_TYPE_TIAM335EVM
 #define CONFIG_BOARD_LATE_INIT
 
 /* enable DHCOM specific code */
@@ -41,14 +41,14 @@
 #endif
 
 /* Clock Defines */
-#define V_OSCK				24000000  /* Clock output from T2 */
-#define V_SCLK				(V_OSCK)
+#define V_OSCK                          24000000  /* Clock output from T2 */
+#define V_SCLK                          (V_OSCK)
 
 /* Custom script for NOR */
-#define CONFIG_SYS_LDSCRIPT		"board/dhelectronics/am335x_dhcom/u-boot.lds"
+#define CONFIG_SYS_LDSCRIPT             "board/dhelectronics/am335x_dhcom/u-boot.lds"
 
 /* Always 128 KiB env size */
-#define CONFIG_ENV_SIZE			(128 << 10)
+#define CONFIG_ENV_SIZE                 (128 << 10)
 
 /* Enhance our eMMC support / experience. */
 #define CONFIG_HSMMC2_8BIT /* use 8-bit interface */
@@ -59,19 +59,19 @@
 
 #ifdef CONFIG_NAND
 #define NANDARGS \
-	"mtdids=" MTDIDS_DEFAULT "\0" \
-	"mtdparts=" MTDPARTS_DEFAULT "\0" \
-	"nandargs=setenv bootargs console=${console} " \
-		"${optargs} " \
-		"root=${nandroot} " \
-		"rootfstype=${nandrootfstype}\0" \
-	"nandroot=ubi0:rootfs rw ubi.mtd=9,2048\0" \
-	"nandrootfstype=ubifs rootwait=1\0" \
-	"nandboot=echo Booting from nand ...; " \
-		"run nandargs; " \
-		"nand read ${fdtaddr} u-boot-spl-os; " \
-		"nand read ${loadaddr} kernel; " \
-		"bootz ${loadaddr} - ${fdtaddr}\0"
+        "mtdids=" MTDIDS_DEFAULT "\0" \
+        "mtdparts=" MTDPARTS_DEFAULT "\0" \
+        "nandargs=setenv bootargs console=${console} " \
+                "${optargs} " \
+                "root=${nandroot} " \
+                "rootfstype=${nandrootfstype}\0" \
+        "nandroot=ubi0:rootfs rw ubi.mtd=9,2048\0" \
+        "nandrootfstype=ubifs rootwait=1\0" \
+        "nandboot=echo Booting from nand ...; " \
+                "run nandargs; " \
+                "nand read ${fdtaddr} u-boot-spl-os; " \
+                "nand read ${loadaddr} kernel; " \
+                "bootz ${loadaddr} - ${fdtaddr}\0"
 #else
 #define NANDARGS ""
 #endif
@@ -80,87 +80,92 @@
 
 #ifndef CONFIG_SPL_BUILD
 #define CONFIG_EXTRA_ENV_SETTINGS \
-	DEFAULT_LINUX_BOOT_ENV \
-	"boot_fdt=try\0" \
-	"bootfile=zImage\0" \
-	"fdtfile=/dtbs/am335x-dheva01.dtb\0" \
-	"console=ttyO0,115200n8\0" \
-	"optargs=\0" \
-	"mmcroot=/dev/mmcblk0p2 ro\0" \
-	"mmcrootfstype=ext4 rootwait\0" \
-	"mmcargs=setenv bootargs console=${console} " \
-		"${optargs} " \
-		"root=${mmcroot} " \
-		"rootfstype=${mmcrootfstype}\0" \
-	"splashimage=0x80000000\0" \
-	"splashpos=m,m\0" \
-	"settings_bin_file=default_settings.bin\0" \
-	"splash_file=splash.bmp\0" \
-	"load_settings_bin=load mmc ${mmcdev}:${mmcpart} ${loadaddr} ${settings_bin_file}\0" \
-	"load_splash=load mmc ${mmcdev}:${mmcpart} ${splashimage} ${splash_file}\0" \
-	"load_update_kernel=dummy\0" \
+        DEFAULT_LINUX_BOOT_ENV \
+        "boot_fdt=try\0" \
+        "bootfile=zImage\0" \
+        "fdtfile=/dtbs/am335x-dheva01.dtb\0" \
+        "console=ttyO0,115200n8\0" \
+        "optargs=\0" \
+        "mmcroot=/dev/mmcblk0p2 ro\0" \
+        "mmcrootfstype=ext4 rootwait\0" \
+        "mmcargs=setenv bootargs console=${console} " \
+                "${optargs} " \
+                "root=${mmcroot} " \
+                "rootfstype=${mmcrootfstype}" \
+                "fbcon=${fbcon} ${optargs} dhcom=${dhcom} " \
+                "${backlight} ${tilcdc_panel} SN=${SN}\0" \
+        "splashimage=0x80000000\0" \
+        "splashpos=m,m\0" \
+        "settings_bin_file=default_settings.bin\0" \
+        "splash_file=splash.bmp\0" \
+        "load_settings_bin=load mmc ${mmcdev}:${mmcpart} ${loadaddr} ${settings_bin_file}\0" \
+        "load_splash=load mmc ${mmcdev}:${mmcpart} ${splashimage} ${splash_file}\0" \
+        "setupdateargs=setenv bootargs " \
+                "console=${console} src_intf=${src_intf} src_dev_part=${src_dev_part} dhcom=${dhcom} " \
+                "${backlight} ${tilcdc_panel} vt.global_cursor_default=0\0" \
+        "load_update_kernel=load ${src_intf} ${src_dev_part} ${loadaddr} zImage_${dhcom}.update; run setupdateargs; bootz ${loadaddr}\0" \
         "mmcdev=" __stringify(CONFIG_SYS_DEFAULT_MMC_DEV) "\0" \
         "mmcpart=1\0" \
-	"netargs=setenv bootargs console=${console} " \
-		"${optargs} " \
-		"root=/dev/nfs " \
-		"nfsroot=${serverip}:${rootpath},${nfsopts} rw " \
-		"ip=dhcp\0" \
-	"bootenv_file=uLinuxEnv.txt\0" \
-	"loadbootenv=load mmc ${mmcdev} ${loadaddr} ${bootenv_file}\0" \
-	"importbootenv=echo Importing environment from mmc ...; " \
-		"env import -t -r $loadaddr $filesize\0" \
-	"loadimage=load mmc ${mmcdev}:${mmcpart} ${loadaddr} ${bootfile}\0" \
-	"loadfdt=load mmc ${mmcdev}:${mmcpart} ${fdtaddr} ${fdtfile}\0" \
-	"mmcloados=run mmcargs; " \
-		"if test ${boot_fdt} = yes || test ${boot_fdt} = try; then " \
-			"if run loadfdt; then " \
-				"bootz ${loadaddr} - ${fdtaddr}; " \
-			"else " \
-				"if test ${boot_fdt} = try; then " \
-					"bootz; " \
-				"else " \
-					"echo WARN: Cannot load the DT; " \
-				"fi; " \
-			"fi; " \
-		"else " \
-			"bootz; " \
-		"fi;\0" \
-	"mmcboot=mmc dev ${mmcdev}; " \
-		"if mmc rescan; then " \
-			"echo SD/MMC found on device ${mmcdev};" \
+        "netargs=setenv bootargs console=${console} " \
+                "${optargs} " \
+                "root=/dev/nfs " \
+                "nfsroot=${serverip}:${rootpath},${nfsopts} rw " \
+                "ip=dhcp\0" \
+        "bootenv_file=uLinuxEnv.txt\0" \
+        "loadbootenv=load mmc ${mmcdev} ${loadaddr} ${bootenv_file}\0" \
+        "importbootenv=echo Importing environment from mmc ...; " \
+                "env import -t -r $loadaddr $filesize\0" \
+        "loadimage=load mmc ${mmcdev}:${mmcpart} ${loadaddr} ${bootfile}\0" \
+        "loadfdt=load mmc ${mmcdev}:${mmcpart} ${fdtaddr} ${fdtfile}\0" \
+        "mmcloados=run mmcargs; " \
+                "if test ${boot_fdt} = yes || test ${boot_fdt} = try; then " \
+                        "if run loadfdt; then " \
+                                "bootz ${loadaddr} - ${fdtaddr}; " \
+                        "else " \
+                                "if test ${boot_fdt} = try; then " \
+                                        "bootz; " \
+                                "else " \
+                                        "echo WARN: Cannot load the DT; " \
+                                "fi; " \
+                        "fi; " \
+                "else " \
+                        "bootz; " \
+                "fi;\0" \
+        "mmcboot=mmc dev ${mmcdev}; " \
+                "if mmc rescan; then " \
+                        "echo SD/MMC found on device ${mmcdev};" \
                         "if run loadbootenv; then " \
-				"echo Loaded environment from ${bootenv_file};" \
-				"run importbootenv;" \
-			"fi;" \
-			"if run loadimage; then " \
-				"run mmcloados;" \
-			"fi;" \
-		"fi;\0" \
-	"netboot=echo Booting from network ...; " \
-		"setenv autoload no; " \
-		"dhcp; " \
-		"tftp ${loadaddr} ${bootfile}; " \
-		"tftp ${fdtaddr} ${fdtfile}; " \
-		"run netargs; " \
-		"bootz ${loadaddr} - ${fdtaddr}\0" \
-	NANDARGS
+                                "echo Loaded environment from ${bootenv_file};" \
+                                "run importbootenv;" \
+                        "fi;" \
+                        "if run loadimage; then " \
+                                "run mmcloados;" \
+                        "fi;" \
+                "fi;\0" \
+        "netboot=echo Booting from network ...; " \
+                "setenv autoload no; " \
+                "dhcp; " \
+                "tftp ${loadaddr} ${bootfile}; " \
+                "tftp ${fdtaddr} ${fdtfile}; " \
+                "run netargs; " \
+                "bootz ${loadaddr} - ${fdtaddr}\0" \
+        NANDARGS
 #endif
 
 #define CONFIG_BOOTCOMMAND \
-	"run mmcboot;" \
-	"setenv mmcdev 1; " \
-	"run mmcboot;"
+        "run mmcboot;" \
+        "setenv mmcdev 1; " \
+        "run mmcboot;"
 
 /* NS16550 Configuration */
-#define CONFIG_SYS_NS16550_COM1		0x44e09000	/* Base EVM has UART0 */
-#define CONFIG_SYS_NS16550_COM2		0x48022000	/* UART1 */
-#define CONFIG_BAUDRATE			115200
+#define CONFIG_SYS_NS16550_COM1         0x44e09000      /* Base EVM has UART0 */
+#define CONFIG_SYS_NS16550_COM2         0x48022000      /* UART1 */
+#define CONFIG_BAUDRATE                 115200
 
 /* I2C */
 #define CONFIG_SYS_I2C
-#define CONFIG_SYS_OMAP24_I2C_SPEED	100000
-#define CONFIG_SYS_OMAP24_I2C_SLAVE	1
+#define CONFIG_SYS_OMAP24_I2C_SPEED     100000
+#define CONFIG_SYS_OMAP24_I2C_SLAVE     1
 #define CONFIG_SYS_I2C_OMAP24XX
 
 #define DISPLAY_ADAPTER_EEPROM_I2C_BUS  2
@@ -170,9 +175,9 @@
 /* RTC */
 #define CONFIG_CMD_DATE
 #define CONFIG_CMD_TIME
-#define CONFIG_SYS_RTC_BUS_NUM		0 /* I2C0 */
+#define CONFIG_SYS_RTC_BUS_NUM          0 /* I2C0 */
 #define CONFIG_RTC_RV3029
-#define CONFIG_SYS_I2C_RTC_ADDR		0x56 /* RTC RV-3029-C3 */
+#define CONFIG_SYS_I2C_RTC_ADDR         0x56 /* RTC RV-3029-C3 */
 
 /* PMIC support */
 #define CONFIG_POWER_TPS65217
@@ -190,71 +195,71 @@
   * data on the serial line may interrupt the boot sequence.
   */
 #undef CONFIG_BOOTDELAY
-#define CONFIG_BOOTDELAY		0
+#define CONFIG_BOOTDELAY                0
 #define CONFIG_ZERO_BOOTDELAY_CHECK
 #define CONFIG_AUTOBOOT
 #define CONFIG_AUTOBOOT_KEYED
-#define CONFIG_AUTOBOOT_PROMPT		\
-	"Press DEL to abort autoboot\n"
-#define CONFIG_AUTOBOOT_STOP_STR	"\x7f"
+#define CONFIG_AUTOBOOT_PROMPT          \
+        "Press DEL to abort autoboot\n"
+#define CONFIG_AUTOBOOT_STOP_STR        "\x7f"
 
 /* USB gadget RNDIS */
 /* #define CONFIG_SPL_MUSB_NEW_SUPPORT */
 
-#define CONFIG_SPL_LDSCRIPT		"$(CPUDIR)/am33xx/u-boot-spl.lds"
+#define CONFIG_SPL_LDSCRIPT             "$(CPUDIR)/am33xx/u-boot-spl.lds"
 #endif
 
 #ifdef CONFIG_NAND
 /* NAND: device related configs */
 #define CONFIG_SYS_NAND_5_ADDR_CYCLE
-#define CONFIG_SYS_NAND_PAGE_COUNT	(CONFIG_SYS_NAND_BLOCK_SIZE / \
-					 CONFIG_SYS_NAND_PAGE_SIZE)
-#define CONFIG_SYS_NAND_PAGE_SIZE	2048
-#define CONFIG_SYS_NAND_OOBSIZE		64
-#define CONFIG_SYS_NAND_BLOCK_SIZE	(128*1024)
+#define CONFIG_SYS_NAND_PAGE_COUNT      (CONFIG_SYS_NAND_BLOCK_SIZE / \
+                                         CONFIG_SYS_NAND_PAGE_SIZE)
+#define CONFIG_SYS_NAND_PAGE_SIZE       2048
+#define CONFIG_SYS_NAND_OOBSIZE         64
+#define CONFIG_SYS_NAND_BLOCK_SIZE      (128*1024)
 /* NAND: driver related configs */
 #define CONFIG_NAND_OMAP_GPMC
 #define CONFIG_NAND_OMAP_GPMC_PREFETCH
 #define CONFIG_NAND_OMAP_ELM
-#define CONFIG_SYS_NAND_BAD_BLOCK_POS	NAND_LARGE_BADBLOCK_POS
-#define CONFIG_SYS_NAND_ECCPOS		{ 2, 3, 4, 5, 6, 7, 8, 9, \
-					 10, 11, 12, 13, 14, 15, 16, 17, \
-					 18, 19, 20, 21, 22, 23, 24, 25, \
-					 26, 27, 28, 29, 30, 31, 32, 33, \
-					 34, 35, 36, 37, 38, 39, 40, 41, \
-					 42, 43, 44, 45, 46, 47, 48, 49, \
-					 50, 51, 52, 53, 54, 55, 56, 57, }
+#define CONFIG_SYS_NAND_BAD_BLOCK_POS   NAND_LARGE_BADBLOCK_POS
+#define CONFIG_SYS_NAND_ECCPOS          { 2, 3, 4, 5, 6, 7, 8, 9, \
+                                         10, 11, 12, 13, 14, 15, 16, 17, \
+                                         18, 19, 20, 21, 22, 23, 24, 25, \
+                                         26, 27, 28, 29, 30, 31, 32, 33, \
+                                         34, 35, 36, 37, 38, 39, 40, 41, \
+                                         42, 43, 44, 45, 46, 47, 48, 49, \
+                                         50, 51, 52, 53, 54, 55, 56, 57, }
 
-#define CONFIG_SYS_NAND_ECCSIZE		512
-#define CONFIG_SYS_NAND_ECCBYTES	14
+#define CONFIG_SYS_NAND_ECCSIZE         512
+#define CONFIG_SYS_NAND_ECCBYTES        14
 #define CONFIG_SYS_NAND_ONFI_DETECTION
-#define CONFIG_NAND_OMAP_ECCSCHEME	OMAP_ECC_BCH8_CODE_HW
-#define MTDIDS_DEFAULT			"nand0=nand.0"
-#define MTDPARTS_DEFAULT		"mtdparts=nand.0:" \
-					"128k(NAND.SPL)," \
-					"128k(NAND.SPL.backup1)," \
-					"128k(NAND.SPL.backup2)," \
-					"128k(NAND.SPL.backup3)," \
-					"256k(NAND.u-boot-spl-os)," \
-					"1m(NAND.u-boot)," \
-					"128k(NAND.u-boot-env)," \
-					"128k(NAND.u-boot-env.backup1)," \
-					"8m(NAND.kernel)," \
-					"-(NAND.rootfs)"
-#define CONFIG_SYS_NAND_U_BOOT_OFFS	0x000c0000
+#define CONFIG_NAND_OMAP_ECCSCHEME      OMAP_ECC_BCH8_CODE_HW
+#define MTDIDS_DEFAULT                  "nand0=nand.0"
+#define MTDPARTS_DEFAULT                "mtdparts=nand.0:" \
+                                        "128k(NAND.SPL)," \
+                                        "128k(NAND.SPL.backup1)," \
+                                        "128k(NAND.SPL.backup2)," \
+                                        "128k(NAND.SPL.backup3)," \
+                                        "256k(NAND.u-boot-spl-os)," \
+                                        "1m(NAND.u-boot)," \
+                                        "128k(NAND.u-boot-env)," \
+                                        "128k(NAND.u-boot-env.backup1)," \
+                                        "8m(NAND.kernel)," \
+                                        "-(NAND.rootfs)"
+#define CONFIG_SYS_NAND_U_BOOT_OFFS     0x000c0000
 #undef CONFIG_ENV_IS_NOWHERE
 #define CONFIG_ENV_IS_IN_NAND
-#define CONFIG_ENV_OFFSET		0x001c0000
-#define CONFIG_ENV_OFFSET_REDUND	0x001e0000
-#define CONFIG_SYS_ENV_SECT_SIZE	CONFIG_SYS_NAND_BLOCK_SIZE
+#define CONFIG_ENV_OFFSET               0x001c0000
+#define CONFIG_ENV_OFFSET_REDUND        0x001e0000
+#define CONFIG_SYS_ENV_SECT_SIZE        CONFIG_SYS_NAND_BLOCK_SIZE
 /* NAND: SPL related configs */
 #ifdef CONFIG_SPL_NAND_SUPPORT
 #define CONFIG_SPL_NAND_AM33XX_BCH
 #endif
 #ifdef CONFIG_SPL_OS_BOOT
-#define CONFIG_CMD_SPL_NAND_OFS	0x00080000 /* os parameters */
-#define CONFIG_SYS_NAND_SPL_KERNEL_OFFS	0x00200000 /* kernel offset */
-#define CONFIG_CMD_SPL_WRITE_SIZE	0x2000
+#define CONFIG_CMD_SPL_NAND_OFS 0x00080000 /* os parameters */
+#define CONFIG_SYS_NAND_SPL_KERNEL_OFFS 0x00200000 /* kernel offset */
+#define CONFIG_CMD_SPL_WRITE_SIZE       0x2000
 #endif
 #endif /* !CONFIG_NAND */
 
@@ -263,7 +268,7 @@
  * in memory.
  */
 #ifdef CONFIG_NOR_BOOT
-#define CONFIG_SYS_TEXT_BASE		0x08000000
+#define CONFIG_SYS_TEXT_BASE            0x08000000
 #endif
 
 /*
@@ -281,10 +286,10 @@
 #define CONFIG_USB_GADGET
 #define CONFIG_USBDOWNLOAD_GADGET
 #define CONFIG_USB_GADGET_DUALSPEED
-#define CONFIG_USB_GADGET_VBUS_DRAW	2
+#define CONFIG_USB_GADGET_VBUS_DRAW     2
 #define CONFIG_MUSB_HOST
 #define CONFIG_AM335X_USB0
-#define CONFIG_AM335X_USB0_MODE	MUSB_PERIPHERAL
+#define CONFIG_AM335X_USB0_MODE MUSB_PERIPHERAL
 #define CONFIG_AM335X_USB1
 #define CONFIG_AM335X_USB1_MODE MUSB_HOST
 
@@ -292,8 +297,8 @@
 /* Fastboot */
 #define CONFIG_CMD_FASTBOOT
 #define CONFIG_ANDROID_BOOT_IMAGE
-#define CONFIG_USB_FASTBOOT_BUF_ADDR	CONFIG_SYS_LOAD_ADDR
-#define CONFIG_USB_FASTBOOT_BUF_SIZE	0x07000000
+#define CONFIG_USB_FASTBOOT_BUF_ADDR    CONFIG_SYS_LOAD_ADDR
+#define CONFIG_USB_FASTBOOT_BUF_SIZE    0x07000000
 
 /* To support eMMC booting */
 #define CONFIG_STORAGE_EMMC
@@ -308,7 +313,7 @@
 #ifdef CONFIG_MUSB_GADGET
 #define CONFIG_USB_ETHER
 #define CONFIG_USB_ETH_RNDIS
-#define CONFIG_USBNET_HOST_ADDR	"de:ad:be:af:00:00"
+#define CONFIG_USBNET_HOST_ADDR "de:ad:be:af:00:00"
 
 /* USB TI's IDs */
 #define CONFIG_G_DNL_VENDOR_NUM 0x0451
@@ -332,7 +337,7 @@
 /* General network SPL  */
 #define CONFIG_SPL_NET_SUPPORT
 #define CONFIG_SPL_ENV_SUPPORT
-#define CONFIG_SPL_NET_VCI_STRING	"AM335x U-Boot SPL"
+#define CONFIG_SPL_NET_VCI_STRING       "AM335x U-Boot SPL"
 #endif
 
 /*
@@ -346,29 +351,29 @@
  */
 #if defined(CONFIG_SPI_BOOT)
 /* SPL related */
-#undef CONFIG_SPL_OS_BOOT		/* Not supported by existing map */
+#undef CONFIG_SPL_OS_BOOT               /* Not supported by existing map */
 #define CONFIG_SPL_SPI_SUPPORT
 #define CONFIG_SPL_SPI_FLASH_SUPPORT
 #define CONFIG_SPL_SPI_LOAD
-#define CONFIG_SYS_SPI_U_BOOT_OFFS	0x20000
+#define CONFIG_SYS_SPI_U_BOOT_OFFS      0x20000
 
 #define CONFIG_ENV_IS_IN_SPI_FLASH
 #define CONFIG_SYS_REDUNDAND_ENVIRONMENT
-#define CONFIG_ENV_SPI_MAX_HZ		CONFIG_SF_DEFAULT_SPEED
-#define CONFIG_ENV_SECT_SIZE		(4 << 10) /* 4 KB sectors */
-#define CONFIG_ENV_OFFSET		(768 << 10) /* 768 KiB in */
-#define CONFIG_ENV_OFFSET_REDUND	(896 << 10) /* 896 KiB in */
-#define MTDIDS_DEFAULT			"nor0=m25p80-flash.0"
-#define MTDPARTS_DEFAULT		"mtdparts=m25p80-flash.0:128k(SPL)," \
-					"512k(u-boot),128k(u-boot-env1)," \
-					"128k(u-boot-env2),-(blank)"
+#define CONFIG_ENV_SPI_MAX_HZ           CONFIG_SF_DEFAULT_SPEED
+#define CONFIG_ENV_SECT_SIZE            (4 << 10) /* 4 KB sectors */
+#define CONFIG_ENV_OFFSET               (768 << 10) /* 768 KiB in */
+#define CONFIG_ENV_OFFSET_REDUND        (896 << 10) /* 896 KiB in */
+#define MTDIDS_DEFAULT                  "nor0=m25p80-flash.0"
+#define MTDPARTS_DEFAULT                "mtdparts=m25p80-flash.0:128k(SPL)," \
+                                        "512k(u-boot),128k(u-boot-env1)," \
+                                        "128k(u-boot-env2),-(blank)"
 #endif
 
 /* SPI flash. */
 #define CONFIG_CMD_SF
 #define CONFIG_SPI_FLASH
 #define CONFIG_SPI_FLASH_SPANSION
-#define CONFIG_SF_DEFAULT_SPEED		48000000
+#define CONFIG_SF_DEFAULT_SPEED         48000000
 
 /* Network. - On DHCOM AM335x we have RMII */
 #undef CONFIG_MII
@@ -383,17 +388,17 @@
 #define CONFIG_LCD_LOGO
 #define CONFIG_LCD_NOSTDOUT
 #define CONFIG_SYS_BLACK_ON_WHITE
-#define LCD_BPP	LCD_COLOR32
+#define LCD_BPP LCD_COLOR32
 
 #define CONFIG_SPLASH_SCREEN
 #define CONFIG_SPLASH_SCREEN_ALIGN
 
 #define CONFIG_VIDEO_BMP_GZIP
-#define CONFIG_SYS_VIDEO_LOGO_MAX_SIZE	(1366*767*4)
+#define CONFIG_SYS_VIDEO_LOGO_MAX_SIZE  (1366*767*4)
 #define CONFIG_CMD_UNZIP
 #define CONFIG_CMD_BMP
 #define CONFIG_BMP_16BPP
 #define CONFIG_BMP_24BMP
 #define CONFIG_BMP_32BPP
 
-#endif	/* ! __CONFIG_AM335X_DHCOM_H */
+#endif  /* ! __CONFIG_AM335X_DHCOM_H */

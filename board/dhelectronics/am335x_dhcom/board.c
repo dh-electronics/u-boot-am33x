@@ -282,39 +282,32 @@ int board_late_init(void)
         uchar buf[128];
 
         hw_code = get_hardware_version();
+        sprintf((char *)buf, "am335x-dhcom%d",hw_code);
+        setenv("dhcom", (char *)buf);
 
         switch (cfg)
         {
         case 0x00FC0382:
-                sprintf((char *)buf, "am3352-dhcom%d",hw_code);
-                setenv("dhcom", (char *)buf);
+                setenv("soc-derivate", "am3352");
                 break;
         case 0x20FC0382:
-                sprintf((char *)buf, "am3354-dhcom%d",hw_code);
-                setenv("dhcom", (char *)buf);
+                setenv("soc-derivate", "am3354");
                 break;
         case 0x00FD0383:
-                sprintf((char *)buf, "am3356-dhcom%d",hw_code);
-                setenv("dhcom", (char *)buf);
+                setenv("soc-derivate", "am3356");
                 break;
         case 0x00FF0383:
-                sprintf((char *)buf, "am3357-dhcom%d",hw_code);
-                setenv("dhcom", (char *)buf);
+                setenv("soc-derivate", "am3357");
                 break;
         case 0x20FD0383:
-                sprintf((char *)buf, "am3358-dhcom%d",hw_code);
-                setenv("dhcom", (char *)buf);
+                setenv("soc-derivate", "am3358");
                 break;
         case 0x20FF0383:
-                sprintf((char *)buf, "am3359-dhcom%d",hw_code);
-                setenv("dhcom", (char *)buf);
+                setenv("soc-derivate", "am3359");
                 break;
-
         default:
-                sprintf((char *)buf, "am335x-dhcom%d",hw_code);
-                setenv("dhcom", (char *)buf);
+                setenv("soc-derivate", "am335x");
                 break;
-
         }
         return 0;
 }
@@ -709,7 +702,7 @@ void generate_dh_settings_kernel_args(void)
                 case 0: // Ignore Display settings
                         // Delete ENV variables
                         setenv("tilcdc_panel", NULL);
-                        setenv("pwm_bl.set", NULL);
+                        setenv("backlight", NULL);
                         break;
                 case 1: // Headless
                         sprintf((char *)buf, "tilcdc_panel.disable");
