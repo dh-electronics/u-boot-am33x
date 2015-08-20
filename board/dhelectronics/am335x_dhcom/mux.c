@@ -17,7 +17,9 @@
 #include <asm/arch/sys_proto.h>
 #include <asm/arch/hardware.h>
 #include <asm/arch/mux.h>
+#include <asm/arch/gpio.h>
 #include <asm/io.h>
+#include <asm/gpio.h>
 #include <i2c.h>
 #include "board.h"
 
@@ -204,6 +206,13 @@ static struct module_pin_mux mmc1_pin_mux[] = { /* eMMC interface on DHCOM */
 };
 #endif
 
+static struct module_pin_mux hw_code_pin_mux[] = { /* Hardware Version Code */
+	{OFFSET(gpmc_ad13), (MODE(7) | RXACTIVE | PULLUDDIS)},	        /* LCD_DAT18: HW Code 0 */
+	{OFFSET(gpmc_ad12), (MODE(7) | RXACTIVE | PULLUDDIS)},	        /* LCD_DAT19: HW Code 1 */
+	{OFFSET(gpmc_ad11), (MODE(7) | RXACTIVE | PULLUDDIS)},	        /* LCD_DAT20: HW Code 2 */
+	{-1},
+};
+
 static struct module_pin_mux parallel_lcd_pin_mux[] = { /* DHCOM LCD Interface*/
 	{OFFSET(lcd_data0), (MODE(0) | PULLUDDIS)},	        /* LCD_DAT0 */
 	{OFFSET(lcd_data1), (MODE(0) | PULLUDDIS)},	        /* LCD_DAT1 */
@@ -267,6 +276,36 @@ void enable_pwm_pin_mux(void)
 	configure_module_pin_mux(pwm_pin_mux);
 }
 
+#define HW_CODE_BIT_0   45
+#define HW_CODE_BIT_1   44
+#define HW_CODE_BIT_2   27
+
+/* little hack to get hw version
+ * - hw code pins are part of the lcd interface */
+static int hw_code = 0;
+
+void detect_hw_version(void)
+{
+        configure_module_pin_mux(hw_code_pin_mux);
+
+        gpio_request(HW_CODE_BIT_0, "HW_CODE_BIT_0");
+        gpio_request(HW_CODE_BIT_1, "HW_CODE_BIT_1");
+        gpio_request(HW_CODE_BIT_2, "HW_CODE_BIT_2");
+
+        gpio_direction_input(HW_CODE_BIT_0);
+        gpio_direction_input(HW_CODE_BIT_1);
+        gpio_direction_input(HW_CODE_BIT_2);
+
+	hw_code = ((gpio_get_value(HW_CODE_BIT_2) << 2) | (gpio_get_value(HW_CODE_BIT_1) << 1) | gpio_get_value(HW_CODE_BIT_0)) + 1; // HW 100 = 00b; HW 200 = 01b; ...
+
+	configure_module_pin_mux(parallel_lcd_pin_mux);
+}
+
+int get_hardware_version(void)
+{
+        return hw_code;
+}
+
 void enable_board_pin_mux()
 {
         /* Pinmux DHCOM */
@@ -314,7 +353,6 @@ void enable_board_pin_mux()
 #else /* Gbit ethernet via DHCOM-X RGMII */
         configure_module_pin_mux(rgmii2_pin_mux);
 #endif
-
         /* Parallel RGB LCD interface */
         configure_module_pin_mux(parallel_lcd_pin_mux);
         /* PWM */
