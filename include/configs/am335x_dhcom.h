@@ -103,7 +103,7 @@
         "setupdateargs=setenv bootargs " \
                 "console=${console} src_intf=${src_intf} src_dev_part=${src_dev_part} dhcom=${dhcom} " \
                 "${backlight} ${tilcdc_panel} vt.global_cursor_default=0\0" \
-        "load_update_kernel=load ${src_intf} ${src_dev_part} ${loadaddr} zImage_${dhcom}.update; run setupdateargs; bootz ${loadaddr}\0" \
+        "load_update_kernel=load ${src_intf} ${src_dev_part} ${loadaddr} zImage_${dhcom}.update; run setupdateargs; bootz ${loadaddr} -\0" \
         "mmcdev=" __stringify(CONFIG_SYS_DEFAULT_MMC_DEV) "\0" \
         "mmcpart=1\0" \
         "netargs=setenv bootargs console=${console} " \
