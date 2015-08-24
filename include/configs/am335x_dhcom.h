@@ -153,6 +153,7 @@
 #endif
 
 #define CONFIG_BOOTCOMMAND \
+        "update auto;" \
         "run mmcboot;" \
         "setenv mmcdev 1; " \
         "run mmcboot;"
