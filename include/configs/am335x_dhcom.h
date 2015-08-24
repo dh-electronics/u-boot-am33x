@@ -86,12 +86,9 @@
         "fdtfile=/dtbs/am335x-dheva01.dtb\0" \
         "console=ttyO0,115200n8\0" \
         "optargs=\0" \
-        "mmcroot=/dev/mmcblk0p2 ro\0" \
-        "mmcrootfstype=ext4 rootwait\0" \
         "mmcargs=setenv bootargs console=${console} " \
                 "${optargs} " \
-                "root=${mmcroot} " \
-                "rootfstype=${mmcrootfstype}" \
+                "${rootfs} " \
                 "fbcon=${fbcon} ${optargs} dhcom=${dhcom} " \
                 "${backlight} ${tilcdc_panel} SN=${SN}\0" \
         "splashimage=0x80000000\0" \
@@ -106,6 +103,8 @@
         "load_update_kernel=load ${src_intf} ${src_dev_part} ${loadaddr} zImage_${dhcom}.update; run setupdateargs; bootz ${loadaddr} -\0" \
         "mmcdev=" __stringify(CONFIG_SYS_DEFAULT_MMC_DEV) "\0" \
         "mmcpart=1\0" \
+        "mmcpart=1\0" \
+        "mmc_rootfs_part=2\0" \
         "netargs=setenv bootargs console=${console} " \
                 "${optargs} " \
                 "root=/dev/nfs " \
@@ -117,7 +116,8 @@
                 "env import -t -r $loadaddr $filesize\0" \
         "loadimage=load mmc ${mmcdev}:${mmcpart} ${loadaddr} ${bootfile}\0" \
         "loadfdt=load mmc ${mmcdev}:${mmcpart} ${fdtaddr} ${fdtfile}\0" \
-        "mmcloados=run mmcargs; " \
+        "mmcloados=setenv set_rootfs setenv rootfs ${rootfs}; run set_rootfs;" \
+                "run mmcargs; " \
                 "if test ${boot_fdt} = yes || test ${boot_fdt} = try; then " \
                         "if run loadfdt; then " \
                                 "bootz ${loadaddr} - ${fdtaddr}; " \
