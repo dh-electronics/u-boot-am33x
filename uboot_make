@@ -17,8 +17,14 @@ echo -- delete old u-boot* files
 rm -v u-boot*
 
 echo ----------------------------
-
-make am335x_dhcom_defconfig
+if [ "$1" = "nand" ] 
+then
+    echo "configure nand support"
+    make am335x_dhcom_nand_defconfig
+else
+    echo "configure emmc support"
+    make am335x_dhcom_emmc_defconfig
+fi
 
 echo -- make u-boot
 make -j5 all > u-boot.txt
