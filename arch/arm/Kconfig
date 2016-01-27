@@ -361,6 +361,14 @@ config TARGET_AM335X_EVM
 	select DM
 	select DM_SERIAL
 	select DM_GPIO
+	
+config TARGET_AM335X_DHCOM
+	bool "Support dhcom_am335x"
+	select CPU_V7
+	select SUPPORT_SPL
+	select DM
+	select DM_SERIAL
+	select DM_GPIO
 
 config TARGET_AM335X_SL50
 	bool "Support am335x_sl50"
@@ -785,6 +793,7 @@ source "board/compulab/cm_t43/Kconfig"
 source "board/creative/xfi3/Kconfig"
 source "board/denx/m28evk/Kconfig"
 source "board/denx/m53evk/Kconfig"
+source "board/dhelectronics/am335x_dhcom/Kconfig"
 source "board/freescale/ls2080a/Kconfig"
 source "board/freescale/ls2080aqds/Kconfig"
 source "board/freescale/ls2080ardb/Kconfig"
