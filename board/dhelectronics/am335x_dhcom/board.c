@@ -119,6 +119,12 @@ static struct emif_regs ddr3_emif_reg_data_dhcom_4gb = {
 	.emif_ddr_phy_ctlr_1 = IM4G16D3EABG_125I_EMIF_READ_LATENCY,
 };
 
+void board_boot_order(u32 *spl_boot_list)
+{
+	spl_boot_list[0] = BOOT_DEVICE_SPI;
+	spl_boot_list[1] = BOOT_DEVICE_MMC1;
+}
+
 #ifdef CONFIG_SPL_OS_BOOT
 int spl_start_uboot(void)
 {
@@ -423,7 +429,7 @@ static struct cpsw_platform_data cpsw_data = {
 #if ((defined(CONFIG_SPL_ETH_SUPPORT) || defined(CONFIG_SPL_USBETH_SUPPORT)) \
                 && defined(CONFIG_SPL_BUILD)) || \
         ((defined(CONFIG_DRIVER_TI_CPSW) || \
-          defined(CONFIG_USB_ETHER) && defined(CONFIG_MUSB_GADGET)) && \
+          defined(CONFIG_USB_ETHER) && defined(CONFIG_USB_MUSB_GADGET)) && \
          !defined(CONFIG_SPL_BUILD))
 int board_eth_init(bd_t *bis)
 {
