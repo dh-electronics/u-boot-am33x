@@ -50,6 +50,11 @@
 /* Always 128 KiB env size */
 #define CONFIG_ENV_SIZE                 (128 << 10)
 
+/* Memory test*/
+#define CONFIG_CMD_MEMTEST
+#define CONFIG_SYS_MEMTEST_START       0x80010000
+#define CONFIG_SYS_MEMTEST_END	       0x80100000
+
 /* Enhance our eMMC support / experience. */
 #define CONFIG_HSMMC2_8BIT /* use 8-bit interface */
 #define CONFIG_CMD_GPT

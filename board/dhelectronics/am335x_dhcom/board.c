@@ -63,6 +63,7 @@ unsigned DHCOM_gpios[] = {
 #define PWM_BACKLIGHT_GP (32*3+14)
 
 #ifndef CONFIG_SKIP_LOWLEVEL_INIT
+/* Nanya 2Gb 128Mx16 NT5CB128M15FP */
 static const struct ddr_data ddr3_dhcom_2gb_data = {
         .datardsratio0 = NT5CB128M15FP_RD_DQS,
         .datawdsratio0 = NT5CB128M15FP_WR_DQS,
@@ -81,8 +82,6 @@ static const struct cmd_control ddr3_dhcom_2gb_cmd_ctrl_data = {
         .cmd2iclkout = NT5CB128M15FP_INVERT_CLKOUT,
 };
 
-
-/* Nanya 2GB 128Mx16 */
 static struct emif_regs ddr3_emif_reg_data_dhcom_2gb = {
         .sdram_config = NT5CB128M15FP_EMIF_SDCFG,
         .ref_ctrl = NT5CB128M15FP_EMIF_SDREF,
@@ -93,6 +92,32 @@ static struct emif_regs ddr3_emif_reg_data_dhcom_2gb = {
         .emif_ddr_phy_ctlr_1 = NT5CB128M15FP_EMIF_READ_LATENCY,
 };
 
+/* Intelligent Memory 4Gb 256Mx16 IM4G16D3EABG-125I */
+static const struct ddr_data ddr3_dhcom_4gb_data = {
+	.datardsratio0 = IM4G16D3EABG_125I_RD_DQS,
+	.datawdsratio0 = IM4G16D3EABG_125I_WR_DQS,
+	.datafwsratio0 = IM4G16D3EABG_125I_PHY_FIFO_WE,
+	.datawrsratio0 = IM4G16D3EABG_125I_PHY_WR_DATA,
+};
+static const struct cmd_control ddr3_dhcom_4gb_cmd_ctrl_data = {
+	.cmd0csratio = IM4G16D3EABG_125I_RATIO,
+	.cmd0iclkout = IM4G16D3EABG_125I_INVERT_CLKOUT,
+
+	.cmd1csratio = IM4G16D3EABG_125I_RATIO,
+	.cmd1iclkout = IM4G16D3EABG_125I_INVERT_CLKOUT,
+
+	.cmd2csratio = IM4G16D3EABG_125I_RATIO,
+	.cmd2iclkout = IM4G16D3EABG_125I_INVERT_CLKOUT,
+};
+static struct emif_regs ddr3_emif_reg_data_dhcom_4gb = {
+	.sdram_config = IM4G16D3EABG_125I_EMIF_SDCFG,
+	.ref_ctrl = IM4G16D3EABG_125I_EMIF_SDREF,
+	.sdram_tim1 = IM4G16D3EABG_125I_EMIF_TIM1,
+	.sdram_tim2 = IM4G16D3EABG_125I_EMIF_TIM2,
+	.sdram_tim3 = IM4G16D3EABG_125I_EMIF_TIM3,
+	.zq_config = IM4G16D3EABG_125I_ZQ_CFG,
+	.emif_ddr_phy_ctlr_1 = IM4G16D3EABG_125I_EMIF_READ_LATENCY,
+};
 
 #ifdef CONFIG_SPL_OS_BOOT
 int spl_start_uboot(void)
@@ -247,12 +272,41 @@ const struct ctrl_ioregs ioregs_dhcom_2gb = {
         .dt1ioctl               = NT5CB128M15FP_IOCTRL_VALUE,
 };
 
+static const struct ctrl_ioregs ioregs_dhcom_4gb = {
+	.cm0ioctl 		= IM4G16D3EABG_125I_IOCTRL_VALUE,
+	.cm1ioctl 		= IM4G16D3EABG_125I_IOCTRL_VALUE,
+	.cm2ioctl 		= IM4G16D3EABG_125I_IOCTRL_VALUE,
+	.dt0ioctl 		= IM4G16D3EABG_125I_IOCTRL_VALUE,
+	.dt1ioctl 		= IM4G16D3EABG_125I_IOCTRL_VALUE,
+};
+
 void sdram_init(void)
 {
-        config_ddr(400, &ioregs_dhcom_2gb,
+	int ddr3_size = 0;
+
+	ddr3_size = get_ddr3_size();
+	
+        switch (ddr3_size)
+        {
+        case 0x2: // 256MB = 2Gbit
+		config_ddr(400, &ioregs_dhcom_2gb,
                            &ddr3_dhcom_2gb_data,
                            &ddr3_dhcom_2gb_cmd_ctrl_data,
                            &ddr3_emif_reg_data_dhcom_2gb, 0);
+                break;
+        case 0x3: // 512MB = 4Gbit
+		config_ddr(400, &ioregs_dhcom_4gb,
+                           &ddr3_dhcom_4gb_data,
+                           &ddr3_dhcom_4gb_cmd_ctrl_data,
+                           &ddr3_emif_reg_data_dhcom_4gb, 0);	
+                break;
+	case 0x0: // 64MB = 512Mbit
+
+        case 0x1: // 128MB = 1Gbit
+
+        default:
+                break;
+        }
 }
 #endif
 

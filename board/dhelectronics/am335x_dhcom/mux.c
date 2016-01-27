@@ -213,6 +213,12 @@ static struct module_pin_mux hw_code_pin_mux[] = { /* Hardware Version Code */
 	{-1},
 };
 
+static struct module_pin_mux ddr3_code_pin_mux[] = { /* DDR3 Code */
+	{OFFSET(gpmc_ad15), (MODE(7) | RXACTIVE | PULLUDDIS)},	        /* gpmc_ad15: DDR3 Code 0 */
+	{OFFSET(gpmc_ad14), (MODE(7) | RXACTIVE | PULLUDDIS)},	        /* gpmc_ad14: DDR3 Code 1 */
+	{-1},
+};
+
 static struct module_pin_mux parallel_lcd_pin_mux[] = { /* DHCOM LCD Interface*/
 	{OFFSET(lcd_data0), (MODE(0) | PULLUDDIS)},	        /* LCD_DAT0 */
 	{OFFSET(lcd_data1), (MODE(0) | PULLUDDIS)},	        /* LCD_DAT1 */
@@ -304,6 +310,32 @@ void detect_hw_version(void)
 int get_hardware_version(void)
 {
         return hw_code;
+}
+
+/* little hack to get ddr3 size
+ * - hw code pins are part of the lcd interface */
+
+
+#define DDR3_CODE_BIT_0   (1*32+15)
+#define DDR3_CODE_BIT_1   (1*32+14)
+
+int get_ddr3_size(void)
+{
+	int ddr3_size = 0;
+	
+        configure_module_pin_mux(ddr3_code_pin_mux);
+
+        gpio_request(DDR3_CODE_BIT_0, "DDR3_CODE_BIT_0");
+        gpio_request(DDR3_CODE_BIT_1, "DDR3_CODE_BIT_1");
+
+        gpio_direction_input(DDR3_CODE_BIT_0);
+        gpio_direction_input(DDR3_CODE_BIT_1);
+	
+	ddr3_size = ((gpio_get_value(DDR3_CODE_BIT_1) << 1) | gpio_get_value(DDR3_CODE_BIT_0)); // 64MB = 00b; 128MB = 01b; 256MB = 10b; 512MB = 11b
+
+	configure_module_pin_mux(parallel_lcd_pin_mux);
+	
+	return ddr3_size;
 }
 
 void enable_board_pin_mux()
