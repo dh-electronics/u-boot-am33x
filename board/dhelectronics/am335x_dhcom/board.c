@@ -522,20 +522,16 @@ static int board_get_splashimage(void)
                 return -ENOMEM;
         }
 
-        gd->flags |= GD_FLG_DISABLE_CONSOLE;
         /* load splash image bmp file from a file system */
         command = getenv ("load_splash");
         if (command == NULL) {
-                gd->flags &= (~GD_FLG_DISABLE_CONSOLE);
                 printf ("splashimage: \"load_splash\" not defined\n");
                 return -ENOENT;
         }
         else if (run_command (command, 0) != 0) {
-                gd->flags &= (~GD_FLG_DISABLE_CONSOLE);
                 printf ("Warning: Can't load splash bitmap\n");
                 return -EIO;
         }
-        gd->flags &= (~GD_FLG_DISABLE_CONSOLE);
         return 0;
 }
 #endif
@@ -805,28 +801,17 @@ void load_dh_settings_file(void)
         set_dhcom_defaultsettings(gsb);
 
         addr = simple_strtoul(getenv ("loadaddr"), NULL, 16);
-        printf("loading dhcom settings...\n");
-
-        // Disable console output
-        gd->flags |= GD_FLG_DISABLE_CONSOLE;
 
         /* Load DH settings file from Filesystem */
         if ((command = getenv ("load_settings_bin")) == NULL) {
-                /* Error: no environment variable 'load_settings_bin' */
-                gd->flags &= (~GD_FLG_DISABLE_CONSOLE);
-                printf ("Warning: \"load_settings_bin\" not defined\n");
+                printf ("Info: \"load_settings_bin\" not defined\n");
         }
         else if (run_command (command, 0) != 0) {
-                /* Error while executing 'load_settings_bin' */
-                gd->flags &= (~GD_FLG_DISABLE_CONSOLE);
                 printf ("Warning: Can't load dhcom settings file\n");
         }
         else if ( 0 != load_settings_data(gsb, addr) ) {
                 printf ("Error: settings file without valid data\n");
         }
-
-        /* Enable console output */
-        gd->flags &= (~GD_FLG_DISABLE_CONSOLE);
 
         /* Check and Read Display data from EEPROM if enabled */
         if((gsb->wHWConfigFlags & SETTINGS_HW_EN_DISP_ADPT_EE_CHK) != 0) {
