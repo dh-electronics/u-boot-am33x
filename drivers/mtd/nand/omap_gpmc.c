@@ -1030,6 +1030,9 @@ int board_nand_init(struct nand_chip *nand)
 		nand->read_buf = nand_read_buf;
 #endif
 
+#ifdef CONFIG_SYS_NAND_USE_FLASH_BBT
+	nand->bbt_options |= (NAND_BBT_USE_FLASH | NAND_BBT_NO_OOB);
+#endif
 	nand->dev_ready = omap_dev_ready;
 
 	return 0;
