@@ -77,20 +77,57 @@
 #define CONFIG_CMD_UBIFS
 #define CONFIG_MTD_UBI_FASTMAP
 
-#define EMMCARGS ""
+#define EMMCARGS \
+        "loadbootenv=load mmc ${mmcdev} ${loadaddr} ${bootenv_file}\0" \
+        "loadimage=load mmc ${mmcdev}:${mmcpart} ${loadaddr} ${bootfile}\0" \
+        "loadfdt=load mmc ${mmcdev}:${mmcpart} ${fdtaddr} ${fdtfile}\0" \
+        "mmcargs=setenv bootargs console=${console} " \
+                "${optargs} " \
+                "${rootfs} " \
+                "fbcon=${fbcon} ${optargs} dhcom=${dhcom} " \
+                "${backlight} ${tilcdc_panel} SN=${SN}\0" \
+        "mmcdev=" __stringify(CONFIG_SYS_DEFAULT_MMC_DEV) "\0" \
+        "mmcpart=1\0" \
+        "mmc_rootfs_part=2\0" \
+        "mmcloados=setenv set_rootfs setenv rootfs ${rootfs}; run set_rootfs;" \
+                "run mmcargs; " \
+                "if test ${boot_fdt} = yes || test ${boot_fdt} = try; then " \
+                        "if run loadfdt; then " \
+                                "bootz ${loadaddr} - ${fdtaddr}; " \
+                        "else " \
+                                "if test ${boot_fdt} = try; then " \
+                                        "bootz; " \
+                                "else " \
+                                        "echo WARN: Cannot load the DT; " \
+                                "fi; " \
+                        "fi; " \
+                "else " \
+                        "bootz; " \
+                "fi;\0" \
+        "mmcboot=mmc dev ${mmcdev}; " \
+                "if mmc rescan; then " \
+                        "echo SD/MMC found on device ${mmcdev};" \
+                        "if run loadbootenv; then " \
+                                "echo Loaded environment from ${bootenv_file};" \
+                                "run importbootenv;" \
+                        "fi;" \
+                        "if run loadimage; then " \
+                                "run mmcloados;" \
+                        "fi;" \
+                "fi;\0" \
 
 #define NANDARGS \
         "mtdids=" MTDIDS_DEFAULT "\0" \
         "mtdparts=" MTDPARTS_DEFAULT "\0" \
         "load_settings_bin=ubi part gpmc-nand; ubifsmount ubi0:boot; ubifsload ${loadaddr} ${settings_bin_file}\0" \
-        "load_splash=ubifsload ${loadaddr} ${splash_file}\0" \
-        "loadbootenv=echo Loading u-boot env file ${bootenv_file}...; ubifsload ${loadaddr} ${bootenv_file};\0" \
-        "loadfdt=echo Loading device tree ${fdtfile}...; ubifsload ${fdtaddr} ${fdtfile}\0" \
-        "loadimage=echo Loading linux ${bootfile}...; ubifsload ${loadaddr} ${bootfile}\0" \
+        "load_splash=ubifsload ${splashimage} ${splash_file}\0" \
+        "nandloadbootenv=echo Loading u-boot env file ${bootenv_file}...; ubifsload ${loadaddr} ${bootenv_file};\0" \
+        "nandloadfdt=echo Loading device tree ${fdtfile}...; ubifsload ${fdtaddr} ${fdtfile}\0" \
+        "nandloadimage=echo Loading linux ${bootfile}...; ubifsload ${loadaddr} ${bootfile}\0" \
         "nandloados=setenv set_rootfs setenv rootfs ${rootfs}; run set_rootfs;" \
                 "run nandargs; " \
                 "if test ${boot_fdt} = yes || test ${boot_fdt} = try; then " \
-                        "if run loadfdt; then " \
+                        "if run nandloadfdt; then " \
                                 "bootz ${loadaddr} - ${fdtaddr}; " \
                         "else " \
                                 "if test ${boot_fdt} = try; then " \
@@ -107,14 +144,12 @@
                 "${rootfs} " \
                 "fbcon=${fbcon} ${optargs} dhcom=${dhcom} " \
                 "${backlight} ${tilcdc_panel} SN=${SN}\0" \
-        "nandroot=ubi0:rootfs rw ubi.mtd=9,2048\0" \
-        "nandrootfstype=ubifs rootwait=1\0" \
         "nandboot=echo Booting from nand ...; " \
-                "if run loadbootenv; then " \
+                "if run nandloadbootenv; then " \
                         "echo Loaded environment from ${bootenv_file};" \
                         "run importbootenv;" \
                 "fi;" \
-                "if run loadimage; then " \
+                "if run nandloadimage; then " \
                         "run nandloados;" \
                 "fi;\0" \
                 "run nandargs; " \
@@ -135,8 +170,6 @@
 #undef CONFIG_CMD_UBIFS
 
 #define EMMCARGS \
-        "settings_bin_file=default_settings.bin\0" \
-        "splash_file=splash.bmp\0" \
         "load_settings_bin=load mmc ${mmcdev}:${mmcpart} ${loadaddr} ${settings_bin_file}\0" \
         "load_splash=load mmc ${mmcdev}:${mmcpart} ${splashimage} ${splash_file}\0" \
         "loadbootenv=load mmc ${mmcdev} ${loadaddr} ${bootenv_file}\0" \
@@ -221,6 +254,8 @@
         "boot_fdt=try\0" \
         "bootfile=zImage\0" \
         "fdtfile=/dtbs/am335x-dheva01.dtb\0" \
+        "settings_bin_file=default_settings.bin\0" \
+        "splash_file=splash.bmp\0" \
         "console=ttyO0,115200n8\0" \
         "optargs=\0" \
         "splashimage=0x80000000\0" \
