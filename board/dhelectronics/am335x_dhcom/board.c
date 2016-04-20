@@ -801,6 +801,11 @@ void load_dh_settings_file(void)
         set_dhcom_defaultsettings(gsb);
 
         addr = simple_strtoul(getenv ("loadaddr"), NULL, 16);
+        if (addr<0x80000000 || addr>0x88000000) { /* allow 128 MB range */
+                /* value check is neccessary, wrong loadaddr results in boot hang */
+                setenv_hex("loadaddr", CONFIG_SYS_LOAD_ADDR);
+                addr = CONFIG_SYS_LOAD_ADDR;
+        }
 
         /* Load DH settings file from Filesystem */
         if ((command = getenv ("load_settings_bin")) == NULL) {
