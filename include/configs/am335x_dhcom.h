@@ -41,7 +41,7 @@
 #define CONFIG_DHCOM
 #ifdef CONFIG_DHCOM
 #include <configs/dhcom_common.h>
-#define UBOOT_DH_VERSION "0.4.0.2"     /* DH - Version of U-Boot e.g. 1.4.0.1 */
+#define UBOOT_DH_VERSION "0.4.0.3"     /* DH - Version of U-Boot e.g. 1.4.0.1 */
 #endif
 
 /* Clock Defines */
