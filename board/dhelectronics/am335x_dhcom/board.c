@@ -441,6 +441,7 @@ int board_eth_init(bd_t *bis)
         int rv, n = 0;
         uint8_t mac_addr[6];
         uint32_t mac_hi, mac_lo;
+        bool run_saveenv = false;
 
         /* try reading mac address from efuse */
         mac_lo = readl(&cdev->macid0l);
@@ -457,8 +458,10 @@ int board_eth_init(bd_t *bis)
         if (!getenv("ethaddr")) {
                 printf("<ethaddr> not set. Validating first E-fuse MAC\n");
 
-                if (is_valid_ethaddr(mac_addr))
+                if (is_valid_ethaddr(mac_addr)) {
                         eth_setenv_enetaddr("ethaddr", mac_addr);
+                        run_saveenv = true;
+                }
         }
 
 #ifdef CONFIG_DRIVER_TI_CPSW
@@ -473,8 +476,10 @@ int board_eth_init(bd_t *bis)
         mac_addr[5] = (mac_lo & 0xFF00) >> 8;
 
         if (!getenv("eth1addr")) {
-                if (is_valid_ethaddr(mac_addr))
+                if (is_valid_ethaddr(mac_addr)) {
                         eth_setenv_enetaddr("eth1addr", mac_addr);
+                        run_saveenv = true;
+                }
         }
 
         /* Set RMII Mode for RMII1 & RMII2, set REFCLK to input mode */
@@ -493,8 +498,9 @@ int board_eth_init(bd_t *bis)
 
 #if defined(CONFIG_USB_ETHER) && \
         (!defined(CONFIG_SPL_BUILD) || defined(CONFIG_SPL_USBETH_SUPPORT))
-        if (is_valid_ethaddr(mac_addr))
+        if (is_valid_ethaddr(mac_addr)) {
                 eth_setenv_enetaddr("usbnet_devaddr", mac_addr);
+        }
 
         rv = usb_eth_initialize(bis);
         if (rv < 0)
@@ -502,6 +508,9 @@ int board_eth_init(bd_t *bis)
         else
                 n += rv;
 #endif
+        if (run_saveenv == true)
+                saveenv();
+
         return n;
 }
 #endif
