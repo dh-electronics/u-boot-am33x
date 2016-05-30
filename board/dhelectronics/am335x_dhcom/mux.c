@@ -71,8 +71,8 @@ static struct module_pin_mux spi0_pin_mux[] = { /* Bootloader NOR-Flash + DHCOM 
 	{OFFSET(spi0_d1), (MODE(0) | RXACTIVE | PULLUDEN)},	/* SPI0_D1 */
 	{OFFSET(spi0_cs0), (MODE(0) | RXACTIVE |
 			PULLUDEN | PULLUP_EN)},			/* SPI0_CS0 : Nor-Flash */
-	{OFFSET(spi0_cs1), (MODE(0) | RXACTIVE |
-			PULLUDEN | PULLUP_EN)},			/* SPI0_CS1 : DHCOM SPI1 */
+	{OFFSET(spi0_cs1), (MODE(7) | RXACTIVE |
+			PULLUDEN | PULLUP_EN)},			/* SPI0_CS1 : DHCOM SPI1 --> GPIO during boot stage*/
 	{-1},
 };
 
