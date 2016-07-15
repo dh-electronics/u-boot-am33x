@@ -1091,6 +1091,7 @@ int spi_flash_scan(struct spi_flash *flash)
 	}
 #endif
 
+#if !defined(CONFIG_SILENT_CONSOLE)
 #ifndef CONFIG_SPL_BUILD
 	printf("SF: Detected %s with page size ", flash->name);
 	print_size(flash->page_size, ", erase size ");
@@ -1099,6 +1100,7 @@ int spi_flash_scan(struct spi_flash *flash)
 	if (flash->memory_map)
 		printf(", mapped at %p", flash->memory_map);
 	puts("\n");
+#endif
 #endif
 
 #ifndef CONFIG_SPI_FLASH_BAR

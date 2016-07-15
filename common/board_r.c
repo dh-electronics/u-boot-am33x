@@ -39,6 +39,7 @@
 #ifdef CONFIG_BITBANGMII
 #include <miiphy.h>
 #endif
+#include <i2c.h>
 #include <mmc.h>
 #include <nand.h>
 #include <onenand_uboot.h>
@@ -415,6 +416,35 @@ static int initr_spi(void)
 }
 #endif
 
+#if defined(CONFIG_SILENT_CONSOLE)
+static int show_dram_config(void)
+{
+	unsigned long long size;
+
+	puts("DRAM:  ");
+
+	size = gd->ram_size;
+	print_size(size, "");
+
+	putc('\n');
+	return 0;
+}
+#endif
+
+#if defined(CONFIG_HARD_I2C) || defined(CONFIG_SYS_I2C)
+static int init_func_i2c(void)
+{
+	puts("I2C:   ");
+#ifdef CONFIG_SYS_I2C
+	i2c_init_all();
+#else
+	i2c_init(CONFIG_SYS_I2C_SPEED, CONFIG_SYS_I2C_SLAVE);
+#endif
+	puts("ready\n");
+	return 0;
+}
+#endif
+
 #ifdef CONFIG_CMD_NAND
 /* go init the NAND */
 static int initr_nand(void)
@@ -451,6 +481,16 @@ static int initr_dataflash(void)
 	dataflash_print_info();
 	return 0;
 }
+#endif
+
+#if defined(CONFIG_WATCHDOG) || defined(CONFIG_HW_WATCHDOG)
+#if defined(CONFIG_SILENT_CONSOLE)
+static int print_watchdog_info(void)
+{
+	puts("       Watchdog enabled\n");
+	return 0;
+}
+#endif
 #endif
 
 /*
@@ -821,7 +861,6 @@ init_fnc_t init_sequence_r[] = {
 #ifdef CONFIG_ARCH_EARLY_INIT_R
 	arch_early_init_r,
 #endif
-	power_init_board,
 #ifndef CONFIG_SYS_NO_FLASH
 	initr_flash,
 #endif
@@ -834,6 +873,25 @@ init_fnc_t init_sequence_r[] = {
 #ifdef CONFIG_PPC
 	initr_spi,
 #endif
+#ifdef CONFIG_HAS_DATAFLASH
+	initr_dataflash,
+#endif
+	initr_env,
+#if defined(CONFIG_SILENT_CONSOLE)
+	display_options,	/* say that we are here */
+	print_cpuinfo,		/* display cpu info (and speed) */
+#if defined(CONFIG_DISPLAY_BOARDINFO)
+	show_board_info,
+#endif
+#if defined(CONFIG_WATCHDOG) || defined(CONFIG_HW_WATCHDOG)
+	print_watchdog_info,
+#endif
+	show_dram_config,
+#endif
+#if defined(CONFIG_HARD_I2C) || defined(CONFIG_SYS_I2C)
+	init_func_i2c,
+#endif
+	power_init_board,
 #ifdef CONFIG_CMD_NAND
 	initr_nand,
 #endif
@@ -843,10 +901,6 @@ init_fnc_t init_sequence_r[] = {
 #ifdef CONFIG_GENERIC_MMC
 	initr_mmc,
 #endif
-#ifdef CONFIG_HAS_DATAFLASH
-	initr_dataflash,
-#endif
-	initr_env,
 #ifdef CONFIG_SYS_BOOTPARAMS_LEN
 	initr_malloc_bootparams,
 #endif
