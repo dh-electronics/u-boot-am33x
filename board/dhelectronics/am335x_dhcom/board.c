@@ -163,6 +163,7 @@ void am33xx_spl_board_init(void)
 {
         int mpu_vdd;
         struct cm_perpll *const cmper = (struct cm_perpll *)CM_PER;
+        struct cm_dpll *const cmdpll = (struct cm_dpll *)CM_DPLL;
 
         /*
          * enable additional clocks
@@ -178,8 +179,8 @@ void am33xx_spl_board_init(void)
                 0
         };
         do_enable_clocks(clk_domains, clk_modules_dhcomspecific, 1);
-        /* setup LCD-Pixel Clock to DISP PLL */
-        writel(0x0, CM_DPLL + 0x34);
+	/* setup LCD-Pixel Clock */
+	writel(0x0, &cmdpll->clklcdcpixelclk);	/* select DISP PLL CLKOUTM2 */
 
         /* power-OFF LCD-Display - in inverted pwm case this disables the backlight */
         enable_pwm_pin_mux();
