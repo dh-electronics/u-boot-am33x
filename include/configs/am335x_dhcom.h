@@ -306,7 +306,10 @@
 #define CONFIG_SYS_I2C_RTC_ADDR         0x56 /* RTC RV-3029-C3 */
 
 /* PMIC support */
+#define CONFIG_POWER
+#define CONFIG_POWER_I2C
 #define CONFIG_POWER_TPS65217
+#define CONFIG_POWER_TPS65218
 
 /* SPL */
 #ifndef CONFIG_NOR_BOOT

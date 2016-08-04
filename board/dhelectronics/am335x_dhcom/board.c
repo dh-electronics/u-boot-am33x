@@ -26,8 +26,9 @@
 #include <i2c.h>
 #include <miiphy.h>
 #include <cpsw.h>
+#include <power/pmic.h>
 #include <power/tps65217.h>
-#include <power/tps65910.h>
+#include <power/tps65218.h>
 #include <environment.h>
 #include <watchdog.h>
 #include <environment.h>
@@ -195,57 +196,98 @@ void am33xx_spl_board_init(void)
         enable_i2c0_pin_mux();
         i2c_init(CONFIG_SYS_OMAP24_I2C_SPEED, CONFIG_SYS_OMAP24_I2C_SLAVE);
 
-        if (i2c_probe(TPS65217_CHIP_PM))
-                return;
+        detect_hw_version();
+        if (get_hardware_version() <= 2) {
+                /*
+                 * handle hardware version 100 and 200:
+                 * - PMIC = TPS65217
+                 */
 
-        /*
-         * Increase USB current limit to 1300mA or 1800mA and set
-         * the MPU voltage controller as needed.
-         */
-        if (dpll_mpu_opp100.m == MPUPLL_M_1000) {
-                usb_cur_lim = TPS65217_USB_INPUT_CUR_LIMIT_1800MA;
-                mpu_vdd = TPS65217_DCDC_VOLT_SEL_1325MV;
+                if (i2c_probe(TPS65217_CHIP_PM))
+                        return;
+
+                /*
+                 * Increase USB current limit to 1300mA or 1800mA and set
+                 * the MPU voltage controller as needed.
+                 */
+                if (dpll_mpu_opp100.m == MPUPLL_M_1000) {
+                        usb_cur_lim = TPS65217_USB_INPUT_CUR_LIMIT_1800MA;
+                        mpu_vdd = TPS65217_DCDC_VOLT_SEL_1325MV;
+                } else {
+                        usb_cur_lim = TPS65217_USB_INPUT_CUR_LIMIT_1300MA;
+                        mpu_vdd = TPS65217_DCDC_VOLT_SEL_1275MV;
+                }
+
+                if (tps65217_reg_write(TPS65217_PROT_LEVEL_NONE,
+                                       TPS65217_POWER_PATH,
+                                       usb_cur_lim,
+                                       TPS65217_USB_INPUT_CUR_LIMIT_MASK))
+                        puts("tps65217_reg_write failure\n");
+
+                /* Set DCDC3 (CORE) voltage to 1.125V */
+                if (tps65217_voltage_update(TPS65217_DEFDCDC3,
+                                            TPS65217_DCDC_VOLT_SEL_1125MV)) {
+                        puts("tps65217_voltage_update core failure\n");
+                        return;
+                }
+
+                /* Set CORE Frequencies to OPP100 */
+                do_setup_dpll(&dpll_core_regs, &dpll_core_opp100);
+
+                /* Set DCDC2 (MPU) voltage */
+                if (tps65217_voltage_update(TPS65217_DEFDCDC2, mpu_vdd)) {
+                        puts("tps65217_voltage_update mpu failure\n");
+                        return;
+                }
+
+                /*
+                 * Set LDO3 to 1.8V and LDO4 to 3.3V for DHCOM AM335x.
+                 */
+                if (tps65217_reg_write(TPS65217_PROT_LEVEL_2,
+                                       TPS65217_DEFLS1,
+                                       TPS65217_LDO_VOLTAGE_OUT_1_8,
+                                       TPS65217_LDO_MASK))
+                        puts("tps65217_reg_write failure\n");
+
+                if (tps65217_reg_write(TPS65217_PROT_LEVEL_2,
+                                       TPS65217_DEFLS2,
+                                       TPS65217_LDO_VOLTAGE_OUT_3_3,
+                                       TPS65217_LDO_MASK))
+                        puts("tps65217_reg_write failure\n");
         } else {
-                usb_cur_lim = TPS65217_USB_INPUT_CUR_LIMIT_1300MA;
-                mpu_vdd = TPS65217_DCDC_VOLT_SEL_1275MV;
+                /*
+                 * handle hardware version 300 and newer:
+                 * - PMIC = TPS65218
+                 */
+
+                if (i2c_probe(TPS65218_CHIP_PM))
+                        return;
+
+                /*
+                 * Set the MPU voltage controller as needed.
+                 */
+                if (dpll_mpu_opp100.m == MPUPLL_M_1000)
+                        mpu_vdd = TPS65218_DCDC_VOLT_SEL_1330MV;
+                else
+                        mpu_vdd = TPS65218_DCDC_VOLT_SEL_1260MV;
+
+                /* Set DCDC1 (CORE) voltage to 1.1 V */
+                if (tps65218_voltage_update(TPS65218_DCDC1,
+                                            TPS65218_DCDC_VOLT_SEL_1100MV)) {
+                        puts("tps65218_voltage_update core failure\n");
+                        return;
+                }
+
+                /* Set CORE Frequencies to OPP100 */
+                do_setup_dpll(&dpll_core_regs, &dpll_core_opp100);
+
+                /* Set DCDC2 (MPU) voltage */
+                if (tps65218_voltage_update(TPS65218_DCDC2, mpu_vdd)) {
+                        puts("tps65218_voltage_update mpu failure\n");
+                        return;
+                }
+
         }
-
-        if (tps65217_reg_write(TPS65217_PROT_LEVEL_NONE,
-                               TPS65217_POWER_PATH,
-                               usb_cur_lim,
-                               TPS65217_USB_INPUT_CUR_LIMIT_MASK))
-                puts("tps65217_reg_write failure\n");
-
-        /* Set DCDC3 (CORE) voltage to 1.125V */
-        if (tps65217_voltage_update(TPS65217_DEFDCDC3,
-                                    TPS65217_DCDC_VOLT_SEL_1125MV)) {
-                puts("tps65217_voltage_update failure\n");
-                return;
-        }
-
-        /* Set CORE Frequencies to OPP100 */
-        do_setup_dpll(&dpll_core_regs, &dpll_core_opp100);
-
-        /* Set DCDC2 (MPU) voltage */
-        if (tps65217_voltage_update(TPS65217_DEFDCDC2, mpu_vdd)) {
-                puts("tps65217_voltage_update failure\n");
-                return;
-        }
-
-        /*
-         * Set LDO3 to 1.8V and LDO4 to 3.3V for DHCOM AM335x.
-         */
-        if (tps65217_reg_write(TPS65217_PROT_LEVEL_2,
-                               TPS65217_DEFLS1,
-                               TPS65217_LDO_VOLTAGE_OUT_1_8,
-                               TPS65217_LDO_MASK))
-                puts("tps65217_reg_write failure\n");
-
-        if (tps65217_reg_write(TPS65217_PROT_LEVEL_2,
-                               TPS65217_DEFLS2,
-                               TPS65217_LDO_VOLTAGE_OUT_3_3,
-                               TPS65217_LDO_MASK))
-                puts("tps65217_reg_write failure\n");
 
         /* Set MPU Frequency to what we detected now that voltages are set */
         do_setup_dpll(&dpll_mpu_regs, &dpll_mpu_opp100);
@@ -317,6 +359,28 @@ void sdram_init(void)
 }
 #endif
 
+/*
+ * setup board specific PMIC
+ * - called after board_init()
+ */
+int power_init_board(void)
+{
+	struct pmic *p;
+
+        if (get_hardware_version() <= 2) {
+		power_tps65217_init(I2C_PMIC);
+		p = pmic_get("TPS65217_PMIC");
+		if (p && !pmic_probe(p))
+			puts("PMIC:  TPS65217\n");
+	} else {
+		power_tps65218_init(I2C_PMIC);
+		p = pmic_get("TPS65218_PMIC");
+		if (p && !pmic_probe(p))
+			puts("PMIC:  TPS65218\n");
+	}
+
+	return 0;
+}
 /*
  * Basic board specific setup.  Pinmux has been handled already.
  */
