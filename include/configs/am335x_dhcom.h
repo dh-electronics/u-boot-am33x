@@ -80,7 +80,7 @@
 #define EMMCARGS \
         "loadbootenv=load mmc ${mmcdev} ${loadaddr} ${bootenv_file}\0" \
         "loadimage=load mmc ${mmcdev}:${mmcpart} ${loadaddr} ${bootfile}\0" \
-        "loadfdt=load mmc ${mmcdev}:${mmcpart} ${fdtaddr} ${fdtfile}\0" \
+        "loadfdt=load mmc ${mmcdev}:${mmcpart} ${fdtaddr} ${fdt_file}\0" \
         "mmcargs=setenv bootargs console=${console} " \
                 "${optargs} " \
                 "${rootfs} " \
@@ -122,7 +122,7 @@
         "load_settings_bin=ubi part gpmc-nand; ubifsmount ubi0:boot; ubifsload ${loadaddr} ${settings_bin_file}\0" \
         "load_splash=ubifsload ${splashimage} ${splash_file}\0" \
         "nandloadbootenv=echo Loading u-boot env file ${bootenv_file}...; ubifsload ${loadaddr} ${bootenv_file};\0" \
-        "nandloadfdt=echo Loading device tree ${fdtfile}...; ubifsload ${fdtaddr} ${fdtfile}\0" \
+        "nandloadfdt=echo Loading device tree ${fdt_file}...; ubifsload ${fdtaddr} ${fdt_file}\0" \
         "nandloadimage=echo Loading linux ${bootfile}...; ubifsload ${loadaddr} ${bootfile}\0" \
         "nandloados=setenv set_rootfs setenv rootfs ${rootfs}; run set_rootfs;" \
                 "run nandargs; " \
@@ -174,7 +174,7 @@
         "load_splash=load mmc ${mmcdev}:${mmcpart} ${splashimage} ${splash_file}\0" \
         "loadbootenv=load mmc ${mmcdev} ${loadaddr} ${bootenv_file}\0" \
         "loadimage=load mmc ${mmcdev}:${mmcpart} ${loadaddr} ${bootfile}\0" \
-        "loadfdt=load mmc ${mmcdev}:${mmcpart} ${fdtaddr} ${fdtfile}\0" \
+        "loadfdt=load mmc ${mmcdev}:${mmcpart} ${fdtaddr} ${fdt_file}\0" \
         "mmcargs=setenv bootargs console=${console} " \
                 "${optargs} " \
                 "${rootfs} " \
@@ -253,7 +253,7 @@
         DEFAULT_LINUX_BOOT_ENV \
         "boot_fdt=try\0" \
         "bootfile=zImage\0" \
-        "fdtfile=/dtbs/am335x-dheva01.dtb\0" \
+        "fdt_file=/dtbs/am335x-dhcom3B-pdk2.dtb\0" \
         "settings_bin_file=default_settings.bin\0" \
         "splash_file=splash.bmp\0" \
         "console=ttyO0,115200n8\0" \
@@ -276,7 +276,7 @@
                 "setenv autoload no; " \
                 "dhcp; " \
                 "tftp ${loadaddr} ${bootfile}; " \
-                "tftp ${fdtaddr} ${fdtfile}; " \
+                "tftp ${fdtaddr} ${fdt_file}; " \
                 "run netargs; " \
                 "bootz ${loadaddr} - ${fdtaddr}\0" \
         NANDARGS \
