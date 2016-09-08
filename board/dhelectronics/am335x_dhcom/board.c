@@ -120,6 +120,33 @@ static struct emif_regs ddr3_emif_reg_data_dhcom_4gb = {
 	.emif_ddr_phy_ctlr_1 = IM4G16D3EABG_125I_EMIF_READ_LATENCY,
 };
 
+/* Intelligent Memory 8Gb 512Mx16 IM8G16D3FBBG-15EI */
+static const struct ddr_data ddr3_dhcom_8gb_data = {
+	.datardsratio0 = IM8G16D3FBBG_15EI_RD_DQS,
+	.datawdsratio0 = IM8G16D3FBBG_15EI_WR_DQS,
+	.datafwsratio0 = IM8G16D3FBBG_15EI_PHY_FIFO_WE,
+	.datawrsratio0 = IM8G16D3FBBG_15EI_PHY_WR_DATA,
+};
+static const struct cmd_control ddr3_dhcom_8gb_cmd_ctrl_data = {
+	.cmd0csratio = IM8G16D3FBBG_15EI_RATIO,
+	.cmd0iclkout = IM8G16D3FBBG_15EI_INVERT_CLKOUT,
+
+	.cmd1csratio = IM8G16D3FBBG_15EI_RATIO,
+	.cmd1iclkout = IM8G16D3FBBG_15EI_INVERT_CLKOUT,
+
+	.cmd2csratio = IM8G16D3FBBG_15EI_RATIO,
+	.cmd2iclkout = IM8G16D3FBBG_15EI_INVERT_CLKOUT,
+};
+static struct emif_regs ddr3_emif_reg_data_dhcom_8gb = {
+	.sdram_config = IM8G16D3FBBG_15EI_EMIF_SDCFG,
+	.ref_ctrl = IM8G16D3FBBG_15EI_EMIF_SDREF,
+	.sdram_tim1 = IM8G16D3FBBG_15EI_EMIF_TIM1,
+	.sdram_tim2 = IM8G16D3FBBG_15EI_EMIF_TIM2,
+	.sdram_tim3 = IM8G16D3FBBG_15EI_EMIF_TIM3,
+	.zq_config = IM8G16D3FBBG_15EI_ZQ_CFG,
+	.emif_ddr_phy_ctlr_1 = IM8G16D3FBBG_15EI_EMIF_READ_LATENCY,
+};
+
 void board_boot_order(u32 *spl_boot_list)
 {
 	spl_boot_list[0] = BOOT_DEVICE_SPI;
@@ -329,6 +356,14 @@ static const struct ctrl_ioregs ioregs_dhcom_4gb = {
 	.dt1ioctl 		= IM4G16D3EABG_125I_IOCTRL_VALUE,
 };
 
+static const struct ctrl_ioregs ioregs_dhcom_8gb = {
+	.cm0ioctl 		= IM8G16D3FBBG_15EI_IOCTRL_VALUE,
+	.cm1ioctl 		= IM8G16D3FBBG_15EI_IOCTRL_VALUE,
+	.cm2ioctl 		= IM8G16D3FBBG_15EI_IOCTRL_VALUE,
+	.dt0ioctl 		= IM8G16D3FBBG_15EI_IOCTRL_VALUE,
+	.dt1ioctl 		= IM8G16D3FBBG_15EI_IOCTRL_VALUE,
+};
+
 void sdram_init(void)
 {
 	int ddr3_size = 0;
@@ -347,10 +382,13 @@ void sdram_init(void)
 		config_ddr(400, &ioregs_dhcom_4gb,
                            &ddr3_dhcom_4gb_data,
                            &ddr3_dhcom_4gb_cmd_ctrl_data,
-                           &ddr3_emif_reg_data_dhcom_4gb, 0);	
+                           &ddr3_emif_reg_data_dhcom_4gb, 0);
                 break;
-	case 0x0: // 64MB = 512Mbit
-
+	case 0x0: // 1024MB = 8Gbit
+		config_ddr(400, &ioregs_dhcom_8gb,
+                           &ddr3_dhcom_8gb_data,
+                           &ddr3_dhcom_8gb_cmd_ctrl_data,
+                           &ddr3_emif_reg_data_dhcom_8gb, 0);
         case 0x1: // 128MB = 1Gbit
 
         default:
