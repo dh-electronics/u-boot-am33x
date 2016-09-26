@@ -249,6 +249,7 @@ struct boot_device_name boot_name_table[] = {
 	{ BOOT_DEVICE_NONE, "unknown boot device" },
 };
 
+#if !defined(CONFIG_SILENT_CONSOLE)
 static void announce_boot_device(u32 boot_device)
 {
 	int i;
@@ -269,6 +270,8 @@ static void announce_boot_device(u32 boot_device)
 
 	printf("%s\n", boot_name_table[i].name);
 }
+#endif
+
 #else
 static inline void announce_boot_device(u32 boot_device) { }
 #endif
@@ -370,7 +373,9 @@ void board_init_r(gd_t *dummy1, ulong dummy2)
 	board_boot_order(spl_boot_list);
 	for (i = 0; i < ARRAY_SIZE(spl_boot_list) &&
 			spl_boot_list[i] != BOOT_DEVICE_NONE; i++) {
+#	    if !defined(CONFIG_SILENT_CONSOLE)
 		announce_boot_device(spl_boot_list[i]);
+#           endif
 		if (!spl_load_image(spl_boot_list[i]))
 			break;
 	}
@@ -416,10 +421,12 @@ void preloader_console_init(void)
 
 	gd->have_console = 1;
 
+#if !defined(CONFIG_SILENT_CONSOLE)
 	puts("\nU-Boot SPL " PLAIN_VERSION " (" U_BOOT_DATE " - " \
 			U_BOOT_TIME ")\n");
 #ifdef CONFIG_SPL_DISPLAY_PRINT
 	spl_display_print();
+#endif
 #endif
 }
 
