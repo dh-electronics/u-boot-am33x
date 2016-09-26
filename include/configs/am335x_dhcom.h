@@ -41,7 +41,7 @@
 #define CONFIG_DHCOM
 #ifdef CONFIG_DHCOM
 #include <configs/dhcom_common.h>
-#define UBOOT_DH_VERSION "0.4.2.0"     /* DH - Version of U-Boot e.g. 1.4.0.1 */
+#define UBOOT_DH_VERSION "0.4.2.x"     /* DH - Version of U-Boot e.g. 1.4.0.1 */
 #endif
 
 /* Clock Defines */
@@ -53,6 +53,11 @@
 
 /* Always 128 KiB env size */
 #define CONFIG_ENV_SIZE                 (128 << 10)
+
+/* Silent Mode */
+#define CONFIG_SILENT_CONSOLE          1
+#define CONFIG_SYS_DEVICE_NULLDEV
+#define CONFIG_SILENT_CONSOLE_UPDATE_ON_RELOC
 
 /* Memory test*/
 #define CONFIG_CMD_MEMTEST
