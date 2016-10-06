@@ -623,6 +623,18 @@ static int board_get_splashimage(void)
 {
         char *splashimage;
         char *command;
+	int iDI_TYPE = 0;
+
+        /* get pointer to global settings block */
+        volatile settingsinfo_t *gsb = &gd->dh_board_settings;
+
+        /* check for headless system */
+        if (gsb->wValidationID == 0x3256) { // "V2" = 0x3256
+                iDI_TYPE = ((gsb->wLCDConfigFlags & SETTINGS_LCD_DI_TYPE_FLAG) >> 13);
+		/* skip loading splash on headless systems */
+		if (iDI_TYPE == 1)
+			return 0;
+	}
 
         splashimage = getenv("splashimage");
         if (!splashimage) /* only load splash image if 'splashimage' is defined */
